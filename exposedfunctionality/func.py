@@ -19,22 +19,10 @@ def exposed_method(out: Optional[List[FunctionOutputParam]] = None):
                     serfunc["output_params"].append(o)
                 else:
                     serfunc["output_params"][i].update(o)
-        if asyncio.iscoroutinefunction(func):
 
-            @wraps(func)
-            async def wrapper(*args, **kwargs):
-                crout = func(*args, **kwargs)
-                return await crout
-
-        else:
-
-            @wraps(func)
-            def wrapper(*args, **kwargs):
-                return func(*args, **kwargs)
-
-        wrapper._exposed_method = True
-        wrapper._funcmeta: SerializedFunction = serfunc
-        return wrapper
+        func._exposed_method = True
+        func._funcmeta: SerializedFunction = serfunc
+        return func
 
     return decorator
 
@@ -59,3 +47,10 @@ def get_exposed_methods(obj: Any) -> Dict[str, Tuple[Callable, SerializedFunctio
         for attr_name, attr_value in methods
         if hasattr(attr_value, "_exposed_method")
     }
+
+
+def assure_exposed_method(obj: Callable, **kwargs):
+    if hasattr(obj, "_funcmeta"):
+        return obj
+
+    return exposed_method(**kwargs)(obj)

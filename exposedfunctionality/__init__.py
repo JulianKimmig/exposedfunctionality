@@ -1,6 +1,11 @@
 from . import function_parser
 from .variables import ExposedValue, add_exposed_value, get_exposed_values
-from .func import exposed_method, get_exposed_methods, SerializedFunction
+from .func import (
+    exposed_method,
+    get_exposed_methods,
+    SerializedFunction,
+    assure_exposed_method,
+)
 
 __all__ = [
     "function_parser",
@@ -11,6 +16,7 @@ __all__ = [
     "exposed_method",
     "get_exposed_methods",
     "SerializedFunction",
+    "assure_exposed_method",
 ]
 
 __version__ = "0.1.0"
