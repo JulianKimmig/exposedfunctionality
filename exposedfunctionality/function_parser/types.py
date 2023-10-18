@@ -138,6 +138,9 @@ def string_to_type(string: str):
 
     string = string.strip()
 
+    if string in TYPE_GETTER:
+        return TYPE_GETTER[string]
+
     # Helper function to handle parameterized types
 
     def handle_param_type(main_type, content):
@@ -161,16 +164,16 @@ def string_to_type(string: str):
     match = re.match(r"(\w+)\[(.*)\]$", string)
     if match:
         main_type, content = match.groups()
-        return handle_param_type(main_type, content)
-
-    if string in TYPE_GETTER:
-        return TYPE_GETTER[string]
-
-    if string in ALLOWED_BUILTINS:
-        if isinstance(__builtins__, dict):
-            return __builtins__[string]
-        else:
-            return getattr(__builtins__, string)
+        _type = handle_param_type(main_type, content)
+        backstring = type_to_string(_type)
+        try:
+            add_type(
+                _type, backstring
+            )  # since the backstring should be prioritized add it first
+            add_type(_type, string)
+        except ValueError:
+            pass
+        return _type
 
     exc = None
     if "." in string:
@@ -181,7 +184,10 @@ def string_to_type(string: str):
             module = importlib.import_module(module_name)
             if hasattr(module, class_name):
                 cls = getattr(module, class_name)
-                add_type(cls, string)
+                try:
+                    add_type(cls, string)
+                except ValueError:
+                    pass
                 return cls
         except ImportError as _exc:
             exc = _exc
@@ -205,36 +211,57 @@ def type_to_string(t: Union[type, str]):
     if isinstance(t, str):
         return t
 
-        # Handle common typing types
-    origin = getattr(t, "__origin__", None)
-    if origin:
-        if origin is Optional:
-            return f"Optional[{type_to_string(t.__args__[0])}]"
-        if origin in [list, List]:
-            return f"List[{type_to_string(t.__args__[0])}]"
-        elif origin in [dict, Dict]:
-            key_type = type_to_string(t.__args__[0])
-            value_type = type_to_string(t.__args__[1])
-            return f"Dict[{key_type}, {value_type}]"
-        elif origin in [tuple, Tuple]:
-            return (
-                f"Tuple[{', '.join(type_to_string(subtype) for subtype in t.__args__)}]"
-            )
-        elif origin is Union:
-            return (
-                f"Union[{', '.join(type_to_string(subtype) for subtype in t.__args__)}]"
-            )
-        elif origin in [Type, type]:
-            if hasattr(t, "__args__"):
-                return f"Type[{type_to_string(t.__args__[0])}]"
-            else:
-                return "Type"
-        elif origin is Any:
-            return "Any"
-        elif origin in [set, Set]:
-            return f"Set[{type_to_string(t.__args__[0])}]"
-
     if t in STRING_GETTER:
         return STRING_GETTER[t]
+        # Handle common typing types
+
+    def get_by_typing(t):
+        origin = getattr(t, "__origin__", None)
+        if origin:
+            if origin is Optional:
+                return f"Optional[{type_to_string(t.__args__[0])}]"
+            if origin in [list, List]:
+                return f"List[{type_to_string(t.__args__[0])}]"
+            elif origin in [dict, Dict]:
+                key_type = type_to_string(t.__args__[0])
+                value_type = type_to_string(t.__args__[1])
+                return f"Dict[{key_type}, {value_type}]"
+            elif origin in [tuple, Tuple]:
+                return f"Tuple[{', '.join(type_to_string(subtype) for subtype in t.__args__)}]"
+            elif origin is Union:
+                return f"Union[{', '.join(type_to_string(subtype) for subtype in t.__args__)}]"
+            elif origin in [Type, type]:
+                if hasattr(t, "__args__"):
+                    return f"Type[{type_to_string(t.__args__[0])}]"
+                else:
+                    return "Type"
+            elif origin is Any:
+                return "Any"
+            elif origin in [set, Set]:
+                return f"Set[{type_to_string(t.__args__[0])}]"
+
+    ans = get_by_typing(t)
+    if ans is not None:
+        try:
+            add_type(t, ans)
+        except ValueError:
+            pass
+        return ans
+
+    if hasattr(t, "__name__") and hasattr(t, "__module__"):
+        name = t.__name__
+        module = t.__module__
+        # check if name can be imported from module
+        try:
+            module_obj = importlib.import_module(module)
+            if hasattr(module_obj, name):
+                ans = f"{module}.{name}"
+                try:
+                    add_type(t, ans)
+                except ValueError:
+                    pass
+                return ans
+        except ImportError:
+            pass
 
     raise TypeNotFoundError(t)

@@ -107,6 +107,29 @@ class TestFunctionSerialization(unittest.TestCase):
         }
         self.assertEqual(result, expected)
 
+    def test_function_method_parser_custom_return_type(self):
+        from exposedfunctionality.function_parser import (
+            SerializedFunction,
+            function_method_parser,
+        )
+
+        def exp_func(a: int) -> SerializedFunction:
+            pass
+
+        result = function_method_parser(exp_func)
+        expected = {
+            "name": "exp_func",
+            "input_params": [{"name": "a", "type": "int", "positional": True}],
+            "output_params": [
+                {
+                    "name": "out",
+                    "type": "exposedfunctionality.function_parser.types.SerializedFunction",
+                }
+            ],
+            "docstring": None,
+        }
+        self.assertEqual(result, expected)
+
     def test_function_method_parser_no_hint(self):
         from exposedfunctionality.function_parser import function_method_parser
 

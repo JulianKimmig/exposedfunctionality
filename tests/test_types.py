@@ -174,7 +174,7 @@ class TestTypeToString(unittest.TestCase):
         class CustomType:
             pass
 
-        t = str(time()) # since custom tyoe might be added in another test
+        t = str(time())  # since custom tyoe might be added in another test
         add_type(CustomType, "CustomType" + t)
         self.assertEqual(type_to_string(CustomType), "CustomType" + t)
 
@@ -184,23 +184,32 @@ class TestTypeToString(unittest.TestCase):
             TypeNotFoundError,
         )
 
+        # Create an object instance without __name__ and __module__ attributes
+        UnknownType = type("UnknownType", (), {})()
+        with self.assertRaises(TypeNotFoundError):
+            type_to_string(UnknownType)
+
         class UnknownType:
             pass
 
         with self.assertRaises(TypeNotFoundError):
-            type_to_string(UnknownType)
+            ans = type_to_string(UnknownType)
+            print(ans)
 
     def test_typing_types(self):
         from exposedfunctionality.function_parser.types import type_to_string
         from typing import Optional, Union, List, Dict, Tuple, Any, Type
 
-        self.assertEqual(type_to_string(Optional[int]), "Union[int, None]")
-        self.assertEqual(type_to_string(Union[int, str]), "Union[int, str]")
-        self.assertEqual(type_to_string(List[int]), "List[int]")
-        self.assertEqual(type_to_string(Dict[int, str]), "Dict[int, str]")
-        self.assertEqual(type_to_string(Tuple[int, str]), "Tuple[int, str]")
-        self.assertEqual(type_to_string(Any), "Any")
-        self.assertEqual(type_to_string(Type), "Type")
-        self.assertEqual(type_to_string(Type[int]), "Type[int]")
-        self.assertEqual(type_to_string(List[Union[int, str]]), "List[Union[int, str]]")
-        self.assertEqual(type_to_string(List[List[int]]), "List[List[int]]")
+        for i in range(2):
+            self.assertEqual(type_to_string(Optional[int]), "Union[int, None]")
+            self.assertEqual(type_to_string(Union[int, str]), "Union[int, str]")
+            self.assertEqual(type_to_string(List[int]), "List[int]")
+            self.assertEqual(type_to_string(Dict[int, str]), "Dict[int, str]")
+            self.assertEqual(type_to_string(Tuple[int, str]), "Tuple[int, str]")
+            self.assertEqual(type_to_string(Any), "Any")
+            self.assertEqual(type_to_string(Type), "Type")
+            self.assertEqual(type_to_string(Type[int]), "Type[int]")
+            self.assertEqual(
+                type_to_string(List[Union[int, str]]), "List[Union[int, str]]"
+            )
+            self.assertEqual(type_to_string(List[List[int]]), "List[List[int]]")
