@@ -86,7 +86,6 @@ def _unify_parser_results(
             param["name"] = f"out{i}" if len(result["output_params"]) > 1 else "out"
 
         if "type" in param:
-            print(param["type"], type_to_string(param["type"]))
             param["type"] = type_to_string(param["type"])
 
     # strip and remove empty errors
@@ -104,9 +103,6 @@ def _unify_parser_results(
     if "summary" in result:
         result["summary"] = result["summary"].strip()
 
-    from pprint import pprint
-
-    pprint(result)
     return result
 
 

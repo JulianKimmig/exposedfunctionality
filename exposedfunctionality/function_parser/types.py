@@ -1,15 +1,8 @@
 from __future__ import annotations
 import importlib
 from typing import Dict
-from typing import (
-    Optional,
-    Any,
-    TypedDict,
-    Required,
-    List,
-    Union,
-    Type,
-)
+from typing import Optional, Any, TypedDict, Required, List, Union, Type, Tuple, Set
+import re
 
 
 class FunctionInputParam(TypedDict, total=False):
@@ -92,6 +85,7 @@ ALLOWED_BUILTINS = {
     "Dict": dict,
     "Tuple": tuple,
     "Set": set,
+    "None": type(None),
 }
 
 
@@ -113,7 +107,7 @@ def add_type(type_: type, name: str):
     Raises:
     - ValueError if the type is already in the list.
     """
-    if "name" in TYPE_GETTER:
+    if name in TYPE_GETTER:
         raise ValueError(f"Type '{name}' already exists.")
 
     TYPE_GETTER[name] = type_
@@ -138,6 +132,36 @@ def string_to_type(string: str):
 
     if isinstance(string, type):
         return string
+
+    if not isinstance(string, str):
+        raise TypeError(f"Expected str, got {type(string)}")
+
+    string = string.strip()
+
+    # Helper function to handle parameterized types
+
+    def handle_param_type(main_type, content):
+        if main_type == "List":
+            return List[string_to_type(content)]
+        elif main_type == "Dict":
+            key, value = map(str.strip, content.split(","))
+            return Dict[string_to_type(key), string_to_type(value)]
+        elif main_type == "Tuple":
+            return Tuple[tuple(map(string_to_type, content.split(",")))]
+        elif main_type == "Union":
+            return Union[tuple(map(string_to_type, content.split(",")))]
+        elif main_type == "Optional":
+            return Optional[string_to_type(content)]
+        elif main_type == "Type":
+            return Type[string_to_type(content)]
+        else:
+            raise TypeNotFoundError(string)
+
+    # Check if the string is a parameterized type (like List[int] or Dict[str, int])
+    match = re.match(r"(\w+)\[(.*)\]$", string)
+    if match:
+        main_type, content = match.groups()
+        return handle_param_type(main_type, content)
 
     if string in TYPE_GETTER:
         return TYPE_GETTER[string]
@@ -180,6 +204,36 @@ def type_to_string(t: Union[type, str]):
     """
     if isinstance(t, str):
         return t
+
+        # Handle common typing types
+    origin = getattr(t, "__origin__", None)
+    if origin:
+        if origin is Optional:
+            return f"Optional[{type_to_string(t.__args__[0])}]"
+        if origin in [list, List]:
+            return f"List[{type_to_string(t.__args__[0])}]"
+        elif origin in [dict, Dict]:
+            key_type = type_to_string(t.__args__[0])
+            value_type = type_to_string(t.__args__[1])
+            return f"Dict[{key_type}, {value_type}]"
+        elif origin in [tuple, Tuple]:
+            return (
+                f"Tuple[{', '.join(type_to_string(subtype) for subtype in t.__args__)}]"
+            )
+        elif origin is Union:
+            return (
+                f"Union[{', '.join(type_to_string(subtype) for subtype in t.__args__)}]"
+            )
+        elif origin in [Type, type]:
+            if hasattr(t, "__args__"):
+                return f"Type[{type_to_string(t.__args__[0])}]"
+            else:
+                return "Type"
+        elif origin is Any:
+            return "Any"
+        elif origin in [set, Set]:
+            return f"Set[{type_to_string(t.__args__[0])}]"
+
     if t in STRING_GETTER:
         return STRING_GETTER[t]
 
