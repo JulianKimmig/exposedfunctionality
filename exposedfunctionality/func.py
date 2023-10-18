@@ -1,7 +1,7 @@
 from typing import Any, Dict, Callable, Tuple, Optional, List
 from functools import wraps
 import asyncio
-from function_parser import (
+from .function_parser import (
     function_method_parser,
     SerializedFunction,
     FunctionOutputParam,
