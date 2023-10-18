@@ -5,6 +5,8 @@ from .func import (
     get_exposed_methods,
     SerializedFunction,
     assure_exposed_method,
+    FunctionInputParam,
+    FunctionOutputParam,
 )
 
 __all__ = [
@@ -17,6 +19,8 @@ __all__ = [
     "get_exposed_methods",
     "SerializedFunction",
     "assure_exposed_method",
+    "FunctionInputParam",
+    "FunctionOutputParam",
 ]
 
 __version__ = "0.1.0"
