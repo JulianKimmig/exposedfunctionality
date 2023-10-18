@@ -8,3 +8,5 @@ __all__ = [
     "add_exposed_value",
     "get_exposed_values",
 ]
+
+__version__ = "0.1.0"
