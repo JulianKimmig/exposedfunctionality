@@ -7,6 +7,7 @@ from typing import (
     TypedDict,
     Required,
     List,
+    Union,
     Type,
 )
 
@@ -16,7 +17,7 @@ class FunctionInputParam(TypedDict, total=False):
 
     name: Required[str]
     default: Any
-    type: Required[Type[Any]]
+    type: Required[str]
     positional: Required[bool]
     optional: bool
     description: Optional[str]
@@ -26,7 +27,7 @@ class FunctionOutputParam(TypedDict):
     """Type definition for an output parameter"""
 
     name: str
-    type: type
+    type: str
     description: Optional[str]
 
 
@@ -66,27 +67,58 @@ class TypeNotFoundError(Exception):
 
 
 ALLOWED_BUILTINS = {
-    "int",
-    "float",
-    "str",
-    "list",
-    "dict",
-    "tuple",
-    "set",
-    "bool",
-    "bytes",
-    "bytearray",
-    "complex",
-    "frozenset",
-    "memoryview",
-    "range",
-    "slice",
-    "type",
-    "None",
+    "int": int,
+    "float": float,
+    "str": str,
+    "list": list,
+    "dict": dict,
+    "tuple": tuple,
+    "set": set,
+    "bool": bool,
+    "bytes": bytes,
+    "bytearray": bytearray,
+    "complex": complex,
+    "frozenset": frozenset,
+    "memoryview": memoryview,
+    "range": range,
+    "slice": slice,
+    "type": type,
+    "None": None,
+    "Any": Any,
+    "Optional": Optional,
+    "Union": Union,
+    "Type": Type,
+    "List": list,
+    "Dict": dict,
+    "Tuple": tuple,
+    "Set": set,
 }
 
 
-TYPE_GETTER: Dict[str, type] = {}
+TYPE_GETTER: Dict[str, type] = {**ALLOWED_BUILTINS}
+STRING_GETTER: Dict[type, str] = {}
+for k, v in TYPE_GETTER.items():
+    if v not in STRING_GETTER:
+        STRING_GETTER[v] = k
+
+
+def add_type(type_: type, name: str):
+    """
+    Add a type to the list of allowed types.
+
+    Parameters:
+    - type_: The type to add.
+    - name: The name of the type.
+
+    Raises:
+    - ValueError if the type is already in the list.
+    """
+    if "name" in TYPE_GETTER:
+        raise ValueError(f"Type '{name}' already exists.")
+
+    TYPE_GETTER[name] = type_
+    if type_ not in STRING_GETTER:
+        STRING_GETTER[type_] = name
 
 
 def string_to_type(string: str):
@@ -103,6 +135,13 @@ def string_to_type(string: str):
     - TypeNotFoundError if the class is not found.
     - ImportError if there's a problem importing the module.
     """
+
+    if isinstance(string, type):
+        return string
+
+    if string in TYPE_GETTER:
+        return TYPE_GETTER[string]
+
     if string in ALLOWED_BUILTINS:
         if isinstance(__builtins__, dict):
             return __builtins__[string]
@@ -117,14 +156,31 @@ def string_to_type(string: str):
         try:
             module = importlib.import_module(module_name)
             if hasattr(module, class_name):
-                return getattr(module, class_name)
+                cls = getattr(module, class_name)
+                add_type(cls, string)
+                return cls
         except ImportError as _exc:
             exc = _exc
-
-    if string in TYPE_GETTER:
-        return TYPE_GETTER[string]
 
     if exc:
         raise TypeNotFoundError(string) from exc
     else:
         raise TypeNotFoundError(string)
+
+
+def type_to_string(t: Union[type, str]):
+    """
+    Convert a class object to a string.
+
+    Parameters:
+    - t: The class object.
+
+    Returns:
+    - The full name of the class, including its module path, if any.
+    """
+    if isinstance(t, str):
+        return t
+    if t in STRING_GETTER:
+        return STRING_GETTER[t]
+
+    raise TypeNotFoundError(t)

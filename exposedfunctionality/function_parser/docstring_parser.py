@@ -4,6 +4,7 @@ import re
 
 from .types import (
     string_to_type,
+    type_to_string,
     DocstringParserResult,
 )
 
@@ -12,6 +13,7 @@ def _unify_parser_results(
     result: DocstringParserResult, docstring=str
 ) -> DocstringParserResult:
     # default empty lists
+
     result["original"] = docstring
     if "input_params" not in result:
         result["input_params"] = []
@@ -46,7 +48,10 @@ def _unify_parser_results(
             if param["default"].startswith(("`", "'", '"')):
                 param["default"] = param["default"][1:-1]
         if "default" in param and "type" in param:
-            param["default"] = param["type"](param["default"])
+            param["default"] = string_to_type(param["type"])(param["default"])
+
+        if "type" in param:
+            param["type"] = type_to_string(param["type"])
 
         param["description"] = (
             param["description"]
@@ -80,6 +85,10 @@ def _unify_parser_results(
         if "name" not in param:
             param["name"] = f"out{i}" if len(result["output_params"]) > 1 else "out"
 
+        if "type" in param:
+            print(param["type"], type_to_string(param["type"]))
+            param["type"] = type_to_string(param["type"])
+
     # strip and remove empty errors
 
     for error in list(result["exceptions"].keys()):
@@ -95,6 +104,9 @@ def _unify_parser_results(
     if "summary" in result:
         result["summary"] = result["summary"].strip()
 
+    from pprint import pprint
+
+    pprint(result)
     return result
 
 

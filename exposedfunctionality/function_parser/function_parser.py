@@ -14,7 +14,14 @@ import inspect
 from functools import partial
 import json
 from .docstring_parser import parse_docstring
-from .types import SerializedFunction, DocstringParserResult, FunctionParamError
+from .types import (
+    SerializedFunction,
+    DocstringParserResult,
+    FunctionParamError,
+    FunctionInputParam,
+    FunctionOutputParam,
+    type_to_string,
+)
 
 
 def get_resolved_signature(
@@ -160,6 +167,8 @@ def function_method_parser(
         else:
             del param_dict["default"]
 
+        param_dict["type"] = type_to_string(param_dict["type"])
+
         input_params.append(param_dict)
 
     output_params = []
@@ -169,7 +178,7 @@ def function_method_parser(
             output_params = []
         elif getattr(th["return"], "__origin__", None) is tuple:
             output_params = [
-                {"name": f"out{i}", "type": t}
+                {"name": f"out{i}", "type": type_to_string(t)}
                 for i, t in enumerate(th["return"].__args__)
             ]
 
@@ -203,6 +212,7 @@ def function_method_parser(
                 if (
                     "type" not in p
                     or p["type"] is None
+                    or p["type"] is "Any"
                     or p["type"] is Any
                 ) and "type" in parsed_ip:
                     p["type"] = parsed_ip["type"]
@@ -228,6 +238,7 @@ def function_method_parser(
                 if (
                     "type" not in p
                     or p["type"] is None
+                    or p["type"] is "Any"
                     or p["type"] is Any
                 ) and "type" in parsed_op:
                     p["type"] = parsed_op["type"]

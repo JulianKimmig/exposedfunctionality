@@ -29,7 +29,7 @@ class DoctringExtractionTests:
                 {
                     "name": "a",
                     "description": "The first parameter.",
-                    "type": int,
+                    "type": "int",
                     "positional": False,
                     "optional": True,
                     "default": 1,
@@ -37,14 +37,14 @@ class DoctringExtractionTests:
                 {
                     "name": "b",
                     "description": "The second parameter.",
-                    "type": str,
+                    "type": "str",
                     "positional": True,
                     "optional": False,
                 },
             ],
             "exceptions": {"ValueError": "When something is wrong."},
             "output_params": [
-                {"description": "A string representation.", "type": str, "name": "out"}
+                {"description": "A string representation.", "type": "str", "name": "out"}
             ],
             "original": self.BASIC_DOCSTRING,
         }
@@ -71,14 +71,14 @@ class DoctringExtractionTests:
                 {
                     "name": "a",
                     "description": "Description for a.",
-                    "type": int,
+                    "type": "int",
                     "positional": True,
                     "optional": False,
                 },
                 {
                     "name": "b",
                     "description": "b is an optional integer.",
-                    "type": int,
+                    "type": "int",
                     "positional": False,
                     "optional": True,
                 },
@@ -95,7 +95,7 @@ class DoctringExtractionTests:
             "summary": "Summary for this one.",
             "input_params": [],
             "output_params": [
-                {"description": "Some output.", "type": int, "name": "out"}
+                {"description": "Some output.", "type": "int", "name": "out"}
             ],
             "exceptions": {},
             "original": self.ONLY_RETURN,
@@ -196,7 +196,7 @@ class DoctringExtractionTests:
             "output_params": [
                 {
                     "description": "Some output. This continues.",
-                    "type": int,
+                    "type": "int",
                     "name": "out",
                 }
             ],

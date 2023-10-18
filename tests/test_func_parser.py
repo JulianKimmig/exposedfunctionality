@@ -53,17 +53,17 @@ class TestFunctionSerialization(unittest.TestCase):
         expected = {
             "name": "example_function",
             "input_params": [
-                {"name": "a", "type": int, "positional": True},
+                {"name": "a", "type": "int", "positional": True},
                 {
                     "name": "b",
-                    "type": str,
+                    "type": "str",
                     "positional": False,
                     "default": "default",
                 },
             ],
             "output_params": [
-                {"name": "out0", "type": int},
-                {"name": "out1", "type": str},
+                {"name": "out0", "type": "int"},
+                {"name": "out1", "type": "str"},
             ],
             "docstring": {
                 "exceptions": {},
@@ -86,8 +86,8 @@ class TestFunctionSerialization(unittest.TestCase):
         expected = {
             "name": "no_hints",
             "input_params": [
-                {"name": "a", "type": Any, "positional": True},
-                {"name": "b", "type": Any, "positional": True},
+                {"name": "a", "type": "Any", "positional": True},
+                {"name": "b", "type": "Any", "positional": True},
             ],
             "output_params": [],
             "docstring": None,
@@ -141,14 +141,14 @@ class TestFunctionSerialization(unittest.TestCase):
             "input_params": [
                 {
                     "name": "a",
-                    "type": int,
+                    "type": "int",
                     "positional": True,
                     "optional": False,
                     "description": "This is an integer.",
                 },
                 {
                     "name": "b",
-                    "type": int,
+                    "type": "int",
                     "positional": False,
                     "optional": True,
                     "default": 1,
@@ -163,14 +163,14 @@ class TestFunctionSerialization(unittest.TestCase):
                         "name": "a",
                         "description": "This is an integer.",
                         "optional": False,
-                        "type": int,
+                        "type": "int",
                         "positional": True,
                     },
                     {
                         "name": "b",
                         "description": "This is an optional integer.",
                         "optional": True,
-                        "type": int,
+                        "type": "int",
                         "positional": False,
                     },
                 ],
