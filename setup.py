@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 import exposedfunctionality
 
 from pathlib import Path
@@ -13,7 +13,7 @@ setup(
     long_description=long_description,
     author="Julian Kimmig",
     author_email="julian.kimmig@linkdlab.de",
-    packages=["exposedfunctionality"],  # Update with your package name
+    packages=find_packages(),  # Update with your package name
     install_requires=["pyyaml"],
     # github
     url="https://github.com/JulianKimmig/ExposedFunctionality",

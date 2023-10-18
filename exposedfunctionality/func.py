@@ -47,7 +47,8 @@ def get_exposed_methods(obj: Any) -> Dict[str, Tuple[Callable, SerializedFunctio
         obj (Union[Any, Type]): Object (instance or class) from which exposed methods are fetched.
 
     Returns:
-        Dict[str, Any]: Dictionary of method names to their method instances.
+        Dict[str, Tuple[Callable, SerializedFunction]]: Dictionary of exposed methods, where the
+        key is the method name and the value is a tuple of the method itself and its SerializedFunction data.
     """
 
     methods = [
