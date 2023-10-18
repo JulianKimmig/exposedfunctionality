@@ -5,20 +5,35 @@ from .function_parser import (
     function_method_parser,
     SerializedFunction,
     FunctionOutputParam,
+    FunctionInputParam,
 )
 
 
-def exposed_method(out: Optional[List[FunctionOutputParam]] = None):
+def exposed_method(
+    name: Optional[str] = None,
+    inputs: Optional[List[FunctionInputParam]] = None,
+    outputs: Optional[List[FunctionOutputParam]] = None,
+):
     """ """
 
     def decorator(func):
         serfunc = function_method_parser(func)
-        if out is not None:
-            for i, o in enumerate(out):
+        if outputs is not None:
+            for i, o in enumerate(outputs):
                 if i >= len(serfunc["output_params"]):
                     serfunc["output_params"].append(o)
                 else:
                     serfunc["output_params"][i].update(o)
+
+        if inputs is not None:
+            for i, o in enumerate(inputs):
+                if i >= len(serfunc["input_params"]):
+                    serfunc["input_params"].append(o)
+                else:
+                    serfunc["input_params"][i].update(o)
+
+        if name is not None:
+            serfunc["name"] = name
 
         func._exposed_method = True
         func._funcmeta: SerializedFunction = serfunc

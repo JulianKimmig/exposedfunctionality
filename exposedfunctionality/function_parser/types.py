@@ -1,12 +1,40 @@
 from __future__ import annotations
 import importlib
 from typing import Dict
-from typing import Optional, Any, TypedDict, Required, List, Union, Type, Tuple, Set
+from typing import (
+    Optional,
+    Any,
+    TypedDict,
+    Required,
+    List,
+    Union,
+    Type,
+    Tuple,
+    Set,
+    Callable,
+)
 import re
 
 
+class Endpoint(TypedDict, total=False):
+    """Type definition for an endpoint"""
+
+    middleware: Optional[List[Callable[[Any], Any]]]
+
+
 class FunctionInputParam(TypedDict, total=False):
-    """Type definition for a function parameter"""
+    """Type definition for a function parameter
+
+    Parameters:
+    - name: The name of the parameter
+    - default: The default value of the parameter
+    - type: The type of the parameter
+    - positional: Whether the parameter is positional
+    - optional: Whether the parameter is optional
+    - description: The description of the parameter
+    - middleware: A list of functions that can be used to transform the parameter value
+    - endpoints:  A dictionary of endpoints that can be used to represent the parameter value in different contexts
+    """
 
     name: Required[str]
     default: Any
@@ -14,14 +42,24 @@ class FunctionInputParam(TypedDict, total=False):
     positional: Required[bool]
     optional: bool
     description: Optional[str]
+    middleware: Optional[List[Callable[[Any], Any]]]
+    endpoints: Optional[Dict[str, Endpoint]]
 
 
 class FunctionOutputParam(TypedDict):
-    """Type definition for an output parameter"""
+    """Type definition for an output parameter
+
+    Parameters:
+    - name: The name of the parameter
+    - type: The type of the parameter
+    - description: The description of the parameter
+    - endpoints:  A dictionary of endpoints that can be used to represent the parameter value in different contexts
+    """
 
     name: str
     type: str
     description: Optional[str]
+    endpoints: Optional[Dict[str, Endpoint]]
 
 
 class SerializedFunction(TypedDict):
