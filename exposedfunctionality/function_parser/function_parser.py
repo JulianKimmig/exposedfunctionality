@@ -183,7 +183,7 @@ def function_method_parser(
             ]
 
         else:
-            output_params = [{"name": "out", "type": th["return"]}]
+            output_params = [{"name": "out", "type": type_to_string(th["return"])}]
 
     docs = inspect.getdoc(base_func)
     parsed_ds: Optional[DocstringParserResult] = None

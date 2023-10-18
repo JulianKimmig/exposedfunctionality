@@ -75,6 +75,38 @@ class TestFunctionSerialization(unittest.TestCase):
         }
         self.assertEqual(result, expected)
 
+    def test_function_method_parser_typed(self):
+        from exposedfunctionality.function_parser import function_method_parser
+        from typing import Union, Dict, Optional
+
+        # Test basic function serialization
+        def example_function(
+            a: Union[int, float], b: Optional[str] = None
+        ) -> Dict[str, Tuple[int, str]]:
+            return {"a": (a, str(b))}
+
+        result = function_method_parser(example_function)
+        expected = {
+            "name": "example_function",
+            "input_params": [
+                {"name": "a", "type": "Union[int, float]", "positional": True},
+                {
+                    "name": "b",
+                    "type": "Union[str, None]",
+                    "positional": False,
+                    "default": None,
+                },
+            ],
+            "output_params": [
+                {
+                    "name": "out",
+                    "type": "Dict[str, Tuple[int, str]]",
+                }
+            ],
+            "docstring": None,
+        }
+        self.assertEqual(result, expected)
+
     def test_function_method_parser_no_hint(self):
         from exposedfunctionality.function_parser import function_method_parser
 
