@@ -8,10 +8,15 @@ from typing import (
     Tuple,
     Set,
     get_type_hints,
+    Optional,
+    Callable,
+    Dict,
+    Any,
+    List,
 )
 
 if sys.version_info >= (3, 8):
-    from typing import TypedDict, Optional, List, Callable, Dict, Any
+    from typing import TypedDict
 
     USE_TYPED_DICT = True
 else:
@@ -19,13 +24,6 @@ else:
 
     class TypedDict(dict):
         pass
-
-    Optional = Union
-
-    Dict = dict
-    List = list
-    Callable = callable
-    Any = object
 
 
 try:
@@ -102,11 +100,21 @@ if USE_TYPED_DICT:
         exceptions: dict[str, str]
 
 else:
-    Endpoint = dict
-    FunctionInputParam = dict
-    FunctionOutputParam = dict
-    SerializedFunction = dict
-    DocstringParserResult = dict
+
+    class Endpoint(dict):
+        pass
+
+    class FunctionInputParam(dict):
+        pass
+
+    class FunctionOutputParam(dict):
+        pass
+
+    class SerializedFunction(dict):
+        pass
+
+    class DocstringParserResult(dict):
+        pass
 
 
 class FunctionParamError(Exception):

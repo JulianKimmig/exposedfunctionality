@@ -43,7 +43,6 @@ class TestStringToType(unittest.TestCase):
         with self.assertRaises(TypeNotFoundError):
             string_to_type("NoSuchType")
 
-
     # Test for non-existent modules
     def test_non_existent_module(self):
         from exposedfunctionality.function_parser.types import (
