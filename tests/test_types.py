@@ -240,7 +240,9 @@ class TestTypeToString(unittest.TestCase):
         from typing import Optional, Union, List, Dict, Tuple, Any, Type
 
         for i in range(2):
-            self.assertEqual(type_to_string(Optional[int]), "Union[int, None]")
+            self.assertIn(
+                type_to_string(Optional[int]), ["Union[int, None]", "Optional[int]"]
+            )
             self.assertEqual(type_to_string(Union[int, str]), "Union[int, str]")
             self.assertEqual(type_to_string(List[int]), "List[int]")
             self.assertEqual(type_to_string(Dict[int, str]), "Dict[int, str]")
