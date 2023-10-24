@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, Mock
 from time import time
-from typing import List, Dict, Tuple, Optional, Set
+from typing import List, Dict, Tuple, Optional, Set, Literal
 
 
 class CustomTypeT:
@@ -100,6 +100,9 @@ class TestStringToType(unittest.TestCase):
         self.assertEqual(string_to_type("List[List[int]]"), List[List[int]])
         self.assertEqual(string_to_type("Tuple[int,int]"), Tuple[int, int])
         self.assertEqual(string_to_type("Set[float]"), Set[float])
+        self.assertEqual(
+            string_to_type("Literal[1,2.0,'hello']"), Literal[1, 2.0, "hello"]
+        )
 
     def test_wrongtypes(self):
         from exposedfunctionality.function_parser.types import string_to_type
@@ -236,6 +239,10 @@ class TestTypeToString(unittest.TestCase):
                 type_to_string(List[Union[int, str]]), "List[Union[int, str]]"
             )
             self.assertEqual(type_to_string(List[List[int]]), "List[List[int]]")
+            self.assertEqual(
+                type_to_string(Literal[1.0, 2, "hello world"]),
+                "Literal[1.0, 2, 'hello world']",
+            )
 
     def test_custom_type(self):
         """

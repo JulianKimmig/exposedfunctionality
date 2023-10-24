@@ -2,6 +2,7 @@ from __future__ import annotations
 import importlib
 import sys
 import re
+import ast
 from typing import (
     Union,
     Type,
@@ -13,6 +14,7 @@ from typing import (
     Dict,
     Any,
     List,
+    Literal,
 )
 
 if sys.version_info >= (3, 8):
@@ -233,6 +235,10 @@ def string_to_type(string: str):
             return Type[string_to_type(content)]
         elif main_type == "Set":
             return Set[string_to_type(content)]
+        elif main_type == "Literal":
+            return Literal[
+                tuple([ast.literal_eval(item.strip()) for item in content.split(",")])
+            ]
         else:
             raise TypeNotFoundError(string)
 
@@ -317,6 +323,10 @@ def type_to_string(t: Union[type, str]):
                 #    return "Type"
             elif origin in [set, Set]:
                 return f"Set[{type_to_string(t.__args__[0])}]"
+            elif origin is Literal:
+                return f"Literal[{str(tuple(t.__args__))[1:-1]}]"
+
+    #                return f"Literal[{', '.join(str(lit) for lit in t.__args__)}]"
 
     ans = get_by_typing(t)
     if ans is not None:

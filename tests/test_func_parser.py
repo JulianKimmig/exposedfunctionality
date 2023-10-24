@@ -250,9 +250,10 @@ class TestFunctionSerialization(unittest.TestCase):
 
         # Test function with type hint from docstring
         def docstring_type(a: int, b=None):
-            """Args:
-            a (float): This is an integer.
-            b (int, optional): This is an optional integer. Defaults to 1
+            """
+            Args:
+                a (float): This is an integer.
+                b (int, optional): This is an optional integer. Defaults to 1
 
             Returns:
                 int: the result.
@@ -317,7 +318,7 @@ class TestFunctionSerialization(unittest.TestCase):
                         "type": "float",
                     },
                 ],
-                "original": "Args:\na (float): This is an integer.\nb (int, optional): This is an optional integer. Defaults to 1\n\nReturns:\n    int: the result.\n    float: the second result.",
+                "original": "Args:\n    a (float): This is an integer.\n    b (int, optional): This is an optional integer. Defaults to 1\n\nReturns:\n    int: the result.\n    float: the second result.",
             },
         }
 
