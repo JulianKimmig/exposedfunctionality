@@ -182,10 +182,14 @@ class TestFunctionSerialization(unittest.TestCase):
         from exposedfunctionality.function_parser import function_method_parser
 
         # Test function with type hint from docstring
-        def docstring_type(a, b=1):
+        def docstring_type(a, b=1) -> int:
             """Args:
             a (int): This is an integer.
-            b (int, optional): This is an optional integer.
+            b (int, optional): This is an optional integer. Defaults to 1
+
+            Returns:
+                int: the result.
+
             """
             pass
 
@@ -202,15 +206,17 @@ class TestFunctionSerialization(unittest.TestCase):
                     "description": "This is an integer.",
                 },
                 {
+                    "default": 1,
                     "name": "b",
                     "type": "int",
                     "positional": False,
                     "optional": True,
-                    "default": 1,
                     "description": "This is an optional integer.",
                 },
             ],
-            "output_params": [],
+            "output_params": [
+                {"description": "the result.", "name": "out", "type": "int"}
+            ],
             "docstring": {
                 "exceptions": {},
                 "input_params": [
@@ -222,6 +228,7 @@ class TestFunctionSerialization(unittest.TestCase):
                         "positional": True,
                     },
                     {
+                        "default": 1,
                         "name": "b",
                         "description": "This is an optional integer.",
                         "optional": True,
@@ -229,9 +236,174 @@ class TestFunctionSerialization(unittest.TestCase):
                         "positional": False,
                     },
                 ],
-                "output_params": [],
-                "original": "Args:\na (int): This is an integer.\nb (int, optional): This is an optional integer.",
+                "output_params": [
+                    {"description": "the result.", "name": "out", "type": "int"}
+                ],
+                "original": "Args:\na (int): This is an integer.\nb (int, optional): This is an optional integer. Defaults to 1\n\nReturns:\n    int: the result.",
             },
         }
 
         self.assertEqual(result, expected)
+
+    def test_function_method_parser_param_from_docstring_with_diff(self):
+        from exposedfunctionality.function_parser import function_method_parser
+
+        # Test function with type hint from docstring
+        def docstring_type(a: int, b=None):
+            """Args:
+            a (float): This is an integer.
+            b (int, optional): This is an optional integer. Defaults to 1
+
+            Returns:
+                int: the result.
+                float: the second result.
+
+            """
+            pass
+
+        result = function_method_parser(docstring_type)
+
+        expected = {
+            "name": "docstring_type",
+            "input_params": [
+                {
+                    "name": "a",
+                    "type": "int",
+                    "positional": True,
+                    "optional": False,
+                    "description": "This is an integer.",
+                },
+                {
+                    "default": 1,
+                    "name": "b",
+                    "type": "int",
+                    "positional": False,
+                    "optional": True,
+                    "description": "This is an optional integer.",
+                },
+            ],
+            "output_params": [
+                {"description": "the result.", "name": "out0", "type": "int"},
+                {
+                    "description": "the second result.",
+                    "name": "out1",
+                    "type": "float",
+                },
+            ],
+            "docstring": {
+                "exceptions": {},
+                "input_params": [
+                    {
+                        "name": "a",
+                        "description": "This is an integer.",
+                        "optional": False,
+                        "type": "float",
+                        "positional": True,
+                    },
+                    {
+                        "default": 1,
+                        "name": "b",
+                        "description": "This is an optional integer.",
+                        "optional": True,
+                        "type": "int",
+                        "positional": False,
+                    },
+                ],
+                "output_params": [
+                    {"description": "the result.", "name": "out0", "type": "int"},
+                    {
+                        "description": "the second result.",
+                        "name": "out1",
+                        "type": "float",
+                    },
+                ],
+                "original": "Args:\na (float): This is an integer.\nb (int, optional): This is an optional integer. Defaults to 1\n\nReturns:\n    int: the result.\n    float: the second result.",
+            },
+        }
+
+        self.assertEqual(result, expected)
+
+
+class TestGetResolvedSignature(unittest.TestCase):
+    """Unit tests for the get_resolved_signature function."""
+
+    def test_simple_function(self):
+        """Test the behavior with simple functions with no preset arguments."""
+        from exposedfunctionality.function_parser import get_resolved_signature
+
+        def example(a, b=2):
+            pass
+
+        sig, base_func = get_resolved_signature(example)
+        self.assertEqual(str(sig), "(a, b=2)")
+
+    def test_partial_function(self):
+        """Test the behavior with partial functions."""
+        from exposedfunctionality.function_parser import get_resolved_signature
+
+        def example(a, b, c=3):
+            pass
+
+        p = partial(example, 1)
+        sig, base_func = get_resolved_signature(p)
+        self.assertEqual(str(sig), "(b, c=3)")
+
+    def test_nested_partial(self):
+        """Test the behavior with nested partial functions."""
+        from exposedfunctionality.function_parser import get_resolved_signature
+
+        def example(a, b, c=3, d=4):
+            pass
+
+        p = partial(example, 1, d=5)
+        p2 = partial(p, 2)
+        sig, base_func = get_resolved_signature(p2)
+        self.assertEqual(str(sig), "(c=3)")
+
+    def test_class_method(self):
+        """Test the behavior with class methods."""
+        from exposedfunctionality.function_parser import get_resolved_signature
+
+        class TestClass:
+            def method(self, a, b):
+                pass
+
+        t = TestClass()
+        sig, base_func = get_resolved_signature(t.method)
+        self.assertEqual(str(sig), "(a, b)")
+
+    def test_class_method_with_partial(self):
+        """Test the behavior with class methods and partial preset arguments."""
+        from exposedfunctionality.function_parser import get_resolved_signature
+
+        class TestClass:
+            def method(self, a, b, c=3):
+                pass
+
+        t = TestClass()
+        p = partial(t.method, 1)
+        sig, base_func = get_resolved_signature(p)
+        self.assertEqual(str(sig), "(b, c=3)")
+
+    def test_class_static_method(self):
+        """Test the behavior with class static methods."""
+        from exposedfunctionality.function_parser import get_resolved_signature
+
+        class TestClass:
+            @staticmethod
+            def static_method(a, b):
+                pass
+
+        sig, base_func = get_resolved_signature(TestClass.static_method)
+        self.assertEqual(str(sig), "(a, b)")
+
+    def test_class_method_from_class(self):
+        """Test the behavior with class methods not from instance."""
+        from exposedfunctionality.function_parser import get_resolved_signature
+
+        class TestClass:
+            def method(self, a, b, c=3):
+                pass
+
+        sig, base_func = get_resolved_signature(TestClass.method)
+        self.assertEqual(str(sig), "(a, b, c=3)")

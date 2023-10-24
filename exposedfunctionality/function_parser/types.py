@@ -78,10 +78,10 @@ class FunctionParamError(Exception):
 class DocstringParserResult(TypedDict, total=False):
     """Type definition for a standardized parsed docstring"""
 
-    oroginal: str
+    original: str
     input_params: list[FunctionInputParam]
     output_params: list[FunctionOutputParam]
-    summary: str
+    summary: Optional[str]
     exceptions: dict[str, str]
 
 
@@ -195,6 +195,8 @@ def string_to_type(string: str):
             return Optional[string_to_type(content)]
         elif main_type == "Type":
             return Type[string_to_type(content)]
+        elif main_type == "Set":
+            return Set[string_to_type(content)]
         else:
             raise TypeNotFoundError(string)
 
@@ -208,6 +210,9 @@ def string_to_type(string: str):
             add_type(
                 _type, backstring
             )  # since the backstring should be prioritized add it first
+        except ValueError:
+            pass
+        try:
             add_type(_type, string)
         except ValueError:
             pass
@@ -256,8 +261,9 @@ def type_to_string(t: Union[type, str]):
     def get_by_typing(t):
         origin = getattr(t, "__origin__", None)
         if origin:
-            if origin is Optional:
-                return f"Optional[{type_to_string(t.__args__[0])}]"
+            # Optional[T] ist just Tuple[T,None] in disguise
+            # if origin is Optional:
+            #    return f"Optional[{type_to_string(t.__args__[0])}]"
             if origin in [list, List]:
                 return f"List[{type_to_string(t.__args__[0])}]"
             elif origin in [dict, Dict]:
@@ -271,10 +277,8 @@ def type_to_string(t: Union[type, str]):
             elif origin in [Type, type]:
                 if hasattr(t, "__args__"):
                     return f"Type[{type_to_string(t.__args__[0])}]"
-                else:
-                    return "Type"
-            elif origin is Any:
-                return "Any"
+                # else: already handeld by the simple "Type" entry
+                #    return "Type"
             elif origin in [set, Set]:
                 return f"Set[{type_to_string(t.__args__[0])}]"
 

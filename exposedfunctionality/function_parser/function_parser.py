@@ -70,6 +70,7 @@ def get_resolved_signature(
 
     # Obtain the original signature
     sig = inspect.signature(base_func)
+
     params = list(sig.parameters.values())
 
     # Remove the preset positional arguments from the front
@@ -212,37 +213,32 @@ def function_method_parser(
                 if (
                     "type" not in p
                     or p["type"] is None
-                    or p["type"] is "Any"
+                    or p["type"] == "Any"
                     or p["type"] is Any
                 ) and "type" in parsed_ip:
                     p["type"] = parsed_ip["type"]
 
-                if (
-                    "positional" not in p or p["positional"] is None
-                ) and "positional" in parsed_ip:
-                    p["positional"] = parsed_ip["positional"]
+                # possitional is always set
+                # if (
+                #    "positional" not in p or p["positional"] is None
+                # ) and "positional" in parsed_ip:
+                #    p["positional"] = parsed_ip["positional"]
 
                 break
 
         # update output params
-        for p in output_params:
-            for parsed_op in parsed_ds["output_params"]:
-                if p["name"] != parsed_op["name"]:
-                    continue
+        if len(output_params) == 0:
+            output_params.extend(parsed_ds["output_params"])
+        if len(output_params) == 1 and len(parsed_ds["output_params"]) >= 1:
+            output_params[0] = {**parsed_ds["output_params"][0], **output_params[0]}
+        if len(output_params) > 1:
+            for i, p in enumerate(output_params):
+                for _dp in parsed_ds["output_params"]:
+                    if p["name"] == _dp["name"] or (
+                        p["name"] == "out0" and _dp["name"] == "out"
+                    ):
+                        output_params[i] = {**_dp, **output_params[i]}
 
-                if (
-                    "description" not in p or p["description"] is None
-                ) and "description" in parsed_op:
-                    p["description"] = parsed_op["description"]
-
-                if (
-                    "type" not in p
-                    or p["type"] is None
-                    or p["type"] is "Any"
-                    or p["type"] is Any
-                ) and "type" in parsed_op:
-                    p["type"] = parsed_op["type"]
-                break
     ser: SerializedFunction = {
         "name": base_func.__name__,
         "input_params": input_params,

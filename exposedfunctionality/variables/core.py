@@ -7,6 +7,8 @@ nonetype = object()
 
 OnChangeEvent = Callable[[Any, Any], None]
 
+ValueChecker = Callable[[Any, "ExposedValueData"], Any]
+
 
 class ExposedValueData:
     def __init__(self, **kwargs) -> None:
@@ -40,10 +42,16 @@ class ExposedValueData:
         self,
         new_value: Any,
         old_value: Any,
-    ):
+    ) -> List[asyncio.Task]:
+        tasks = []
+
         for callback in self._on_change_callbacks:
             if asyncio.iscoroutinefunction(callback):
-                asyncio.create_task(callback(new_value, old_value))
+                tasks.append(asyncio.create_task(callback(new_value, old_value)))
+            else:
+                callback(new_value, old_value)
+
+        return tasks
 
 
 class ExposedValue:
@@ -67,7 +75,7 @@ class ExposedValue:
         name: str,
         default: Any = nonetype,
         type_: Optional[Type] = nonetype,
-        valuechecker=None,
+        valuechecker: Optional[List[ValueChecker]] = None,
         **kwargs,
     ):
         """
@@ -175,12 +183,14 @@ class ExposedValue:
                     f"Expected value of type {self.type}, got {type(value)}"
                 ) from exc
 
-        old_value = instance.__dict__[self.name]
+        old_value = instance.__dict__.get(self.name, self.default)
+
         instance.__dict__[self.name] = value
 
         dataobj.changeevent.set()
         dataobj.changeevent.clear()
-        dataobj.call_on_change_callbacks(value, old_value)
+        if old_value != nonetype:
+            dataobj.call_on_change_callbacks(value, old_value)
 
     def __delete__(self, instance: Any) -> None:
         """
@@ -280,18 +290,3 @@ def get_exposed_values(obj: Union[Any, Type]) -> Dict[str, ExposedValue]:
         for attr_name, attr_value in vars(source).items()
         if isinstance(attr_value, ExposedValue)
     }
-
-
-def min_max_clamp(value, valuedata: ExposedValueData, min=None, max=None):
-    if min is None:
-        min = getattr(valuedata, "min", None)
-    if max is None:
-        max = getattr(valuedata, "max", None)
-
-    if max is not None and min is not None and max < min:
-        raise ValueError("max must be greater than or equal to min")
-    if min is not None and value < min:
-        return min
-    if max is not None and value > max:
-        return max
-    return value

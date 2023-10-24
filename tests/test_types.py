@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch, Mock
 from time import time
+from typing import List, Dict, Tuple, Optional, Set
 
 
 class TestStringToType(unittest.TestCase):
@@ -109,6 +110,23 @@ class TestStringToType(unittest.TestCase):
         self.assertEqual(string_to_type("Type[int]"), Type[int])
         self.assertEqual(string_to_type("List[Union[int, str]]"), List[Union[int, str]])
         self.assertEqual(string_to_type("List[List[int]]"), List[List[int]])
+        self.assertEqual(string_to_type("Tuple[int,int]"), Tuple[int, int])
+        self.assertEqual(string_to_type("Set[float]"), Set[float])
+
+    def test_wrongtypes(self):
+        from exposedfunctionality.function_parser.types import string_to_type
+
+        with self.assertRaises(TypeError):
+            string_to_type(10)
+
+    def test_unknown_type(self):
+        from exposedfunctionality.function_parser.types import (
+            string_to_type,
+            TypeNotFoundError,
+        )
+
+        with self.assertRaises(TypeNotFoundError):
+            string_to_type("Dummy[int]")
 
 
 class TestAddType(unittest.TestCase):
@@ -161,12 +179,32 @@ class TestGeneral(unittest.TestCase):
             self.assertIn(v, STRING_GETTER)
 
 
+class CustomType:
+    pass
+
+
 class TestTypeToString(unittest.TestCase):
-    def test_builtin_types_to_string(self):
+    """
+    Test class for the type_to_string function.
+    """
+
+    def test_string_input(self):
+        """
+        Test that the function returns the input unchanged if it's a string.
+        """
+        from exposedfunctionality.function_parser.types import type_to_string
+
+        self.assertEqual(type_to_string("str"), "str")
+
+    def test_builtin_types(self):
+        """
+        Test conversion of built-in types to string representation.
+        """
         from exposedfunctionality.function_parser.types import type_to_string
 
         self.assertEqual(type_to_string(int), "int")
         self.assertEqual(type_to_string(str), "str")
+        # ... add other builtin types as needed
 
     def test_custom_types_to_string(self):
         from exposedfunctionality.function_parser.types import type_to_string, add_type
@@ -194,7 +232,6 @@ class TestTypeToString(unittest.TestCase):
 
         with self.assertRaises(TypeNotFoundError):
             ans = type_to_string(UnknownType)
-            print(ans)
 
     def test_typing_types(self):
         from exposedfunctionality.function_parser.types import type_to_string
@@ -208,8 +245,45 @@ class TestTypeToString(unittest.TestCase):
             self.assertEqual(type_to_string(Tuple[int, str]), "Tuple[int, str]")
             self.assertEqual(type_to_string(Any), "Any")
             self.assertEqual(type_to_string(Type), "Type")
+            self.assertEqual(type_to_string(Set[float]), "Set[float]")
+            self.assertEqual(type_to_string(Type[Any]), "Type[Any]")
             self.assertEqual(type_to_string(Type[int]), "Type[int]")
             self.assertEqual(
                 type_to_string(List[Union[int, str]]), "List[Union[int, str]]"
             )
             self.assertEqual(type_to_string(List[List[int]]), "List[List[int]]")
+
+    def test_typing_types(self):
+        """
+        Test conversion of typing types (like Optional, List, Union, etc.) to string representation.
+        """
+        from exposedfunctionality.function_parser.types import type_to_string
+
+        self.assertEqual(type_to_string(Optional[int]), "Union[int, None]")
+        self.assertEqual(type_to_string(List[int]), "List[int]")
+        self.assertEqual(type_to_string(Dict[int, str]), "Dict[int, str]")
+        self.assertEqual(type_to_string(Tuple[int, str]), "Tuple[int, str]")
+        # ... add other typing types as needed
+
+    def test_custom_type(self):
+        """
+        Test conversion of a custom type to string representation.
+        """
+        from exposedfunctionality.function_parser.types import type_to_string
+
+        self.assertEqual(type_to_string(CustomType), "test_types.CustomType")
+
+    def test_unknown_type(self):
+        """
+        Test conversion of an unknown type raises the appropriate exception.
+        """
+        from exposedfunctionality.function_parser.types import (
+            type_to_string,
+            TypeNotFoundError,
+        )
+
+        # Create a custom type without __name__ and __module__ attributes
+        UnknownType = type("UnknownType", (), {})
+
+        with self.assertRaises(TypeNotFoundError):
+            type_to_string(UnknownType)

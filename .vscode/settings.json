@@ -13,7 +13,7 @@
   "command-runner.terminal.autoFocus": true,
   "command-runner.commands": {
     "coverage": "coverage run & coverage html& coverage lcov & coverage report",
-    "echo file": "echo ${file}"
+    "codebase_win": "cd exposedfunctionality/ & echo.>../codebase.txt & setlocal enabledelayedexpansion & for /R %f in (*.py) do (set \"relativePath=%f\" & call echo %relativePath:%CD%=.%: & type \"%f\" & echo. & echo. & echo.)>> ../codebase.txt & cd .."
   },
 
   "multiCommand.commands": [

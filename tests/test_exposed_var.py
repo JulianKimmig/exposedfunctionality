@@ -1,5 +1,6 @@
 # Tests for the exposed_var module
 import unittest
+import asyncio
 
 
 class TestExposedValue(unittest.TestCase):
@@ -75,6 +76,44 @@ class TestExposedValue(unittest.TestCase):
 
         ev = ExposedValue("attr", 10)
         self.assertEqual(repr(ev), "ExposedValue(attr)")
+
+    def test_valuechecker(self):
+        from exposedfunctionality import ExposedValue
+
+        def valuechecker(value, valuedata):
+            return value + 5
+
+        class TestClass:
+            attr = ExposedValue("attr", valuechecker=[valuechecker])
+
+        tc = TestClass()
+
+        tc.attr = 5
+
+        self.assertEqual(tc.attr, 10)
+
+    def test_invalid_default(self):
+        from exposedfunctionality import ExposedValue
+
+        with self.assertRaises(TypeError) as cm:
+            ExposedValue("attr", "invalid", type_=int)
+        self.assertEqual(
+            str(cm.exception),
+            "Expected default value of type <class 'int'>, got <class 'str'>",
+        )
+
+        with self.assertRaises(TypeError) as cm:
+            ExposedValue("attr", 10.1, type_=int)
+            # get the from the exception
+        exc = cm.exception
+        parent_exc = exc.__cause__
+        self.assertEqual(
+            str(parent_exc),
+            "Can convert default value of type <class 'float'> to <class 'int'>, and back again, but not without loss of information.",
+        )
+
+
+#       ExposedValue("attr", 10.1, type_=int)
 
 
 class TestExposedValueFunctions(unittest.TestCase):
@@ -224,4 +263,86 @@ class TestExposedValueFunctions(unittest.TestCase):
         self.assertEqual(tc3.__dict__["attr"], 10)
         self.assertEqual(
             get_exposed_values_dict(tc3), {"attr": 10, "attr2": 30, "attr3": 20}
+        )
+
+
+class TestExposedValueData(unittest.IsolatedAsyncioTestCase):
+    """
+    Tests for the ExposedValueData class.
+    """
+
+    async def test_add_on_change_callback_and_invoke(self):
+        """
+        Test that the on_change_callback is correctly added and subsequently invoked when data changes.
+        """
+        from exposedfunctionality.variables import ExposedValueData
+
+        data = ExposedValueData()
+        callback_triggered = False
+
+        def callback(new_value, old_value):
+            nonlocal callback_triggered
+            callback_triggered = True
+
+        data.add_on_change_callback(callback)
+        data.call_on_change_callbacks(5, 3)
+
+        self.assertTrue(callback_triggered, "Callback was not triggered.")
+
+    async def test_add_on_change_callback_with_async(self):
+        """
+        Test adding an asynchronous on_change_callback and ensure it's invoked when data changes.
+        """
+        from exposedfunctionality.variables import ExposedValueData
+
+        data = ExposedValueData()
+        callback_triggered_event = asyncio.Event()
+
+        async def async_callback(new_value, old_value):
+            callback_triggered_event.set()
+
+        data.add_on_change_callback(async_callback)
+        tasks: list[asyncio.Task] = data.call_on_change_callbacks(5, 3)
+
+        # Wait for the async callback to complete
+        await asyncio.gather(*tasks)
+        self.assertTrue(
+            callback_triggered_event.is_set(), "Async callback was not triggered."
+        )
+
+    def test_attribute_access(self):
+        """
+        Test that accessing attributes of ExposedValueData returns expected values.
+        """
+        from exposedfunctionality.variables import ExposedValueData
+
+        data = ExposedValueData(attr1="value1", attr2="value2")
+
+        self.assertEqual(
+            data.attr1, "value1", "Attribute 'attr1' did not return expected value."
+        )
+        self.assertEqual(
+            data.attr2, "value2", "Attribute 'attr2' did not return expected value."
+        )
+
+        with self.assertRaises(AttributeError):
+            _ = data.nonexistent_attr
+
+    async def test_call_on_change_callback_receives_correct_values(self):
+        """
+        Test that the on_change_callback receives the correct new and old values.
+        """
+        from exposedfunctionality.variables import ExposedValueData
+
+        data = ExposedValueData()
+        received_values = []
+
+        def callback(new_value, old_value):
+            received_values.append((new_value, old_value))
+
+        data.add_on_change_callback(callback)
+        data.call_on_change_callbacks(5, 3)
+
+        self.assertEqual(
+            received_values, [(5, 3)], "Callback did not receive expected values."
         )
