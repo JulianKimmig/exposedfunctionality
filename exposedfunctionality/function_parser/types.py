@@ -33,6 +33,11 @@ try:
 except ImportError:
     Required = Union
 
+try:
+    from typing import NoneType
+except ImportError:
+    NoneType = type(None)
+
 
 if USE_TYPED_DICT:
 

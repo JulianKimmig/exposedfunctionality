@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-from types import NoneType
+
 import warnings
 import inspect
 from functools import partial
@@ -20,6 +20,7 @@ from .types import (
     Callable,
     List,
     Tuple,
+    NoneType
 )
 
 
