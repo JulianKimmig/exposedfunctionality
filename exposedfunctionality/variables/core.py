@@ -1,6 +1,7 @@
-from typing import Optional, Dict, Union, Type, Any, List, Callable
 import asyncio
 import json
+
+from ..function_parser.types import Optional, Dict, Union, Type, Any, List, Callable
 
 
 nonetype = object()
@@ -13,7 +14,11 @@ ValueChecker = Callable[[Any, "ExposedValueData"], Any]
 class ExposedValueData:
     def __init__(self, **kwargs) -> None:
         self._data = kwargs
-        self.changeevent = asyncio.Event()
+        try:
+            self.changeevent = asyncio.Event()
+        except RuntimeError:
+            # if we are not in an event loop, no event
+            self.changeevent = None
         self._on_change_callbacks: List[OnChangeEvent] = []
 
     def add_on_change_callback(
@@ -187,8 +192,9 @@ class ExposedValue:
 
         instance.__dict__[self.name] = value
 
-        dataobj.changeevent.set()
-        dataobj.changeevent.clear()
+        if dataobj.changeevent:
+            dataobj.changeevent.set()
+            dataobj.changeevent.clear()
         if old_value != nonetype:
             dataobj.call_on_change_callbacks(value, old_value)
 

@@ -1,88 +1,124 @@
 from __future__ import annotations
 import importlib
-from typing import Dict
+import sys
+import re
 from typing import (
-    Optional,
-    Any,
-    TypedDict,
-    Required,
-    List,
     Union,
     Type,
     Tuple,
     Set,
+    get_type_hints,
+    Optional,
     Callable,
+    Dict,
+    Any,
+    List,
 )
-import re
+
+if sys.version_info >= (3, 8):
+    from typing import TypedDict
+
+    USE_TYPED_DICT = True
+else:
+    USE_TYPED_DICT = False
+
+    class TypedDict(dict):
+        pass
 
 
-class Endpoint(TypedDict, total=False):
-    """Type definition for an endpoint"""
+try:
+    from typing import Required
+except ImportError:
+    Required = Union
 
-    middleware: Optional[List[Callable[[Any], Any]]]
-
-
-class FunctionInputParam(TypedDict, total=False):
-    """Type definition for a function parameter
-
-    Parameters:
-    - name: The name of the parameter
-    - default: The default value of the parameter
-    - type: The type of the parameter
-    - positional: Whether the parameter is positional
-    - optional: Whether the parameter is optional
-    - description: The description of the parameter
-    - middleware: A list of functions that can be used to transform the parameter value
-    - endpoints:  A dictionary of endpoints that can be used to represent the parameter value in different contexts
-    """
-
-    name: Required[str]
-    default: Any
-    type: Required[str]
-    positional: Required[bool]
-    optional: bool
-    description: Optional[str]
-    middleware: Optional[List[Callable[[Any], Any]]]
-    endpoints: Optional[Dict[str, Endpoint]]
+try:
+    from typing import NoneType
+except ImportError:
+    NoneType = type(None)
 
 
-class FunctionOutputParam(TypedDict):
-    """Type definition for an output parameter
+if USE_TYPED_DICT:
 
-    Parameters:
-    - name: The name of the parameter
-    - type: The type of the parameter
-    - description: The description of the parameter
-    - endpoints:  A dictionary of endpoints that can be used to represent the parameter value in different contexts
-    """
+    class Endpoint(TypedDict, total=False):
+        """Type definition for an endpoint"""
 
-    name: str
-    type: str
-    description: Optional[str]
-    endpoints: Optional[Dict[str, Endpoint]]
+        middleware: Optional[List[Callable[[Any], Any]]]
 
+    class FunctionInputParam(TypedDict, total=False):
+        """Type definition for a function parameter
 
-class SerializedFunction(TypedDict):
-    """Type definition for a serialized function"""
+        Parameters:
+        - name: The name of the parameter
+        - default: The default value of the parameter
+        - type: The type of the parameter
+        - positional: Whether the parameter is positional
+        - optional: Whether the parameter is optional
+        - description: The description of the parameter
+        - middleware: A list of functions that can be used to transform the parameter value
+        - endpoints:  A dictionary of endpoints that can be used to represent the parameter value in different contexts
+        """
 
-    name: str
-    input_params: List[FunctionInputParam]
-    output_params: List[FunctionOutputParam]
-    docstring: Optional[DocstringParserResult]
+        name: Required[str]
+        default: Any
+        type: Required[str]
+        positional: Required[bool]
+        optional: bool
+        description: Optional[str]
+        middleware: Optional[List[Callable[[Any], Any]]]
+        endpoints: Optional[Dict[str, Endpoint]]
+
+    class FunctionOutputParam(TypedDict):
+        """Type definition for an output parameter
+
+        Parameters:
+        - name: The name of the parameter
+        - type: The type of the parameter
+        - description: The description of the parameter
+        - endpoints:  A dictionary of endpoints that can be used to represent the parameter value in different contexts
+        """
+
+        name: str
+        type: str
+        description: Optional[str]
+        endpoints: Optional[Dict[str, Endpoint]]
+
+    class SerializedFunction(TypedDict):
+        """Type definition for a serialized function"""
+
+        name: str
+        input_params: List[FunctionInputParam]
+        output_params: List[FunctionOutputParam]
+        docstring: Optional[DocstringParserResult]
+
+    class DocstringParserResult(TypedDict, total=False):
+        """Type definition for a standardized parsed docstring"""
+
+        original: str
+        input_params: list[FunctionInputParam]
+        output_params: list[FunctionOutputParam]
+        summary: Optional[str]
+        exceptions: dict[str, str]
+
+else:
+
+    class Endpoint(dict):
+        pass
+
+    class FunctionInputParam(dict):
+        pass
+
+    class FunctionOutputParam(dict):
+        pass
+
+    class SerializedFunction(dict):
+        pass
+
+    class DocstringParserResult(dict):
+        pass
 
 
 class FunctionParamError(Exception):
     """Base class for function parameter errors"""
-
-
-class DocstringParserResult(TypedDict, total=False):
-    """Type definition for a standardized parsed docstring"""
-
-    original: str
-    input_params: list[FunctionInputParam]
-    output_params: list[FunctionOutputParam]
-    summary: Optional[str]
-    exceptions: dict[str, str]
 
 
 class UnknownSectionError(Exception):
@@ -127,11 +163,11 @@ ALLOWED_BUILTINS = {
 }
 
 
-TYPE_GETTER: Dict[str, type] = {**ALLOWED_BUILTINS}
-STRING_GETTER: Dict[type, str] = {}
-for k, v in TYPE_GETTER.items():
-    if v not in STRING_GETTER:
-        STRING_GETTER[v] = k
+_TYPE_GETTER: Dict[str, type] = {**ALLOWED_BUILTINS}
+_STRING_GETTER: Dict[type, str] = {}
+for k, v in _TYPE_GETTER.items():
+    if v not in _STRING_GETTER:
+        _STRING_GETTER[v] = k
 
 
 def add_type(type_: type, name: str):
@@ -145,12 +181,12 @@ def add_type(type_: type, name: str):
     Raises:
     - ValueError if the type is already in the list.
     """
-    if name in TYPE_GETTER:
+    if name in _TYPE_GETTER:
         raise ValueError(f"Type '{name}' already exists.")
 
-    TYPE_GETTER[name] = type_
-    if type_ not in STRING_GETTER:
-        STRING_GETTER[type_] = name
+    _TYPE_GETTER[name] = type_
+    if type_ not in _STRING_GETTER:
+        _STRING_GETTER[type_] = name
 
 
 def string_to_type(string: str):
@@ -176,8 +212,8 @@ def string_to_type(string: str):
 
     string = string.strip()
 
-    if string in TYPE_GETTER:
-        return TYPE_GETTER[string]
+    if string in _TYPE_GETTER:
+        return _TYPE_GETTER[string]
 
     # Helper function to handle parameterized types
 
@@ -254,8 +290,8 @@ def type_to_string(t: Union[type, str]):
     if isinstance(t, str):
         return t
 
-    if t in STRING_GETTER:
-        return STRING_GETTER[t]
+    if t in _STRING_GETTER:
+        return _STRING_GETTER[t]
         # Handle common typing types
 
     def get_by_typing(t):

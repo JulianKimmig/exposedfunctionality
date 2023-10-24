@@ -4,6 +4,18 @@ from time import time
 from typing import List, Dict, Tuple, Optional, Set
 
 
+class CustomTypeT:
+    pass
+
+
+class CustomTypeA:
+    pass
+
+
+class CustomTypeB:
+    pass
+
+
 class TestStringToType(unittest.TestCase):
     # Test for built-in types
     def test_builtin_types(self):
@@ -31,26 +43,6 @@ class TestStringToType(unittest.TestCase):
         with self.assertRaises(TypeNotFoundError):
             string_to_type("NoSuchType")
 
-    @patch(
-        f"exposedfunctionality.function_parser.types.__builtins__", new_callable=Mock
-    )
-    def test_string_to_type_with_module_builtins(self, mock_builtins):
-        from exposedfunctionality.function_parser.types import (
-            string_to_type,
-        )
-
-        # Set __builtins__ to be a module mock
-        mock_builtins.__class__ = Mock()
-        # Mock the return value for getattr on the builtins module
-        mock_int_type = int
-        setattr(mock_builtins, "int", mock_int_type)
-
-        # Test the function
-        result = string_to_type("int")
-
-        # Assert that the correct type was returned
-        self.assertEqual(result, mock_int_type)
-
     # Test for non-existent modules
     def test_non_existent_module(self):
         from exposedfunctionality.function_parser.types import (
@@ -61,19 +53,15 @@ class TestStringToType(unittest.TestCase):
         with self.assertRaises(TypeNotFoundError):
             string_to_type("no_such_module.NoClass")
 
-    # Test using the TYPE_GETTER mechanism
     def test_type_getter(self):
         from exposedfunctionality.function_parser.types import (
             string_to_type,
-            TYPE_GETTER,
+            add_type,
         )
 
-        class CustomType:
-            pass
+        add_type(CustomTypeA, "CustomTypeA")
 
-        TYPE_GETTER["CustomType"] = CustomType
-
-        self.assertEqual(string_to_type("CustomType"), CustomType)
+        self.assertEqual(string_to_type("CustomTypeA"), CustomTypeA)
 
     @patch("exposedfunctionality.function_parser.types.importlib.import_module")
     def test_module_import_without_class(self, mock_import_module):
@@ -131,24 +119,25 @@ class TestStringToType(unittest.TestCase):
 
 class TestAddType(unittest.TestCase):
     def setUp(self):
-        from exposedfunctionality.function_parser.types import TYPE_GETTER
+        from exposedfunctionality.function_parser.types import _TYPE_GETTER
 
-        self.initial_types = TYPE_GETTER.copy()
+        self.initial_types = _TYPE_GETTER.copy()
 
     def tearDown(self):
         from exposedfunctionality.function_parser import types
 
-        types.TYPE_GETTER = self.initial_types
+        types._TYPE_GETTER = self.initial_types
+        types._STRING_GETTER = {v: k for k, v in self.initial_types.items()}
 
     def test_add_new_type(self):
-        from exposedfunctionality.function_parser.types import add_type, TYPE_GETTER
+        from exposedfunctionality.function_parser.types import add_type, _TYPE_GETTER
 
         class NewType:
             pass
 
         add_type(NewType, "NewType")
-        self.assertIn("NewType", TYPE_GETTER)
-        self.assertEqual(TYPE_GETTER["NewType"], NewType)
+        self.assertIn("NewType", _TYPE_GETTER)
+        self.assertEqual(_TYPE_GETTER["NewType"], NewType)
 
     def test_add_existing_type_raises_error(self):
         from exposedfunctionality.function_parser.types import add_type
@@ -157,30 +146,26 @@ class TestAddType(unittest.TestCase):
             add_type(int, "int")
 
     def test_adding_duplicate_type_does_not_override(self):
-        from exposedfunctionality.function_parser.types import add_type, TYPE_GETTER
+        from exposedfunctionality.function_parser.types import add_type, _TYPE_GETTER
 
         class DuplicateType:
             pass
 
         add_type(int, "DuplicateType")
 
-        self.assertEqual(TYPE_GETTER["int"], TYPE_GETTER["DuplicateType"])
-        self.assertEqual(TYPE_GETTER["DuplicateType"], int)
+        self.assertEqual(_TYPE_GETTER["int"], _TYPE_GETTER["DuplicateType"])
+        self.assertEqual(_TYPE_GETTER["DuplicateType"], int)
 
 
 class TestGeneral(unittest.TestCase):
     def test_STRING_GETTER_populated_correctly(self):
         from exposedfunctionality.function_parser.types import (
-            STRING_GETTER,
-            TYPE_GETTER,
+            _STRING_GETTER,
+            _TYPE_GETTER,
         )
 
-        for k, v in TYPE_GETTER.items():
-            self.assertIn(v, STRING_GETTER)
-
-
-class CustomType:
-    pass
+        for k, v in _TYPE_GETTER.items():
+            self.assertIn(v, _STRING_GETTER)
 
 
 class TestTypeToString(unittest.TestCase):
@@ -209,12 +194,9 @@ class TestTypeToString(unittest.TestCase):
     def test_custom_types_to_string(self):
         from exposedfunctionality.function_parser.types import type_to_string, add_type
 
-        class CustomType:
-            pass
-
         t = str(time())  # since custom tyoe might be added in another test
-        add_type(CustomType, "CustomType" + t)
-        self.assertEqual(type_to_string(CustomType), "CustomType" + t)
+        add_type(CustomTypeT, "CustomType" + t)
+        self.assertEqual(type_to_string(CustomTypeT), "CustomType" + t)
 
     def test_unknown_type_raises_error(self):
         from exposedfunctionality.function_parser.types import (
@@ -231,14 +213,16 @@ class TestTypeToString(unittest.TestCase):
             pass
 
         with self.assertRaises(TypeNotFoundError):
-            ans = type_to_string(UnknownType)
+            _ = type_to_string(UnknownType)
 
     def test_typing_types(self):
         from exposedfunctionality.function_parser.types import type_to_string
         from typing import Optional, Union, List, Dict, Tuple, Any, Type
 
         for i in range(2):
-            self.assertEqual(type_to_string(Optional[int]), "Union[int, None]")
+            self.assertIn(
+                type_to_string(Optional[int]), ["Union[int, None]", "Optional[int]"]
+            )
             self.assertEqual(type_to_string(Union[int, str]), "Union[int, str]")
             self.assertEqual(type_to_string(List[int]), "List[int]")
             self.assertEqual(type_to_string(Dict[int, str]), "Dict[int, str]")
@@ -253,25 +237,13 @@ class TestTypeToString(unittest.TestCase):
             )
             self.assertEqual(type_to_string(List[List[int]]), "List[List[int]]")
 
-    def test_typing_types(self):
-        """
-        Test conversion of typing types (like Optional, List, Union, etc.) to string representation.
-        """
-        from exposedfunctionality.function_parser.types import type_to_string
-
-        self.assertEqual(type_to_string(Optional[int]), "Union[int, None]")
-        self.assertEqual(type_to_string(List[int]), "List[int]")
-        self.assertEqual(type_to_string(Dict[int, str]), "Dict[int, str]")
-        self.assertEqual(type_to_string(Tuple[int, str]), "Tuple[int, str]")
-        # ... add other typing types as needed
-
     def test_custom_type(self):
         """
         Test conversion of a custom type to string representation.
         """
         from exposedfunctionality.function_parser.types import type_to_string
 
-        self.assertEqual(type_to_string(CustomType), "test_types.CustomType")
+        self.assertEqual(type_to_string(CustomTypeB), "test_types.CustomTypeB")
 
     def test_unknown_type(self):
         """

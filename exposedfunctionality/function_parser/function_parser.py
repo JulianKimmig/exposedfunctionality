@@ -1,14 +1,7 @@
 from __future__ import annotations
-from typing import (
-    Optional,
-    Any,
-    get_type_hints,
-    Callable,
-    List,
-    Tuple,
-)
 
-from types import NoneType
+
+
 import warnings
 import inspect
 from functools import partial
@@ -21,6 +14,13 @@ from .types import (
     FunctionInputParam,
     FunctionOutputParam,
     type_to_string,
+    Optional,
+    Any,
+    get_type_hints,
+    Callable,
+    List,
+    Tuple,
+    NoneType
 )
 
 

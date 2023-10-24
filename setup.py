@@ -27,6 +27,6 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.9",  # Adjust to your Python version
+        "Programming Language :: Python :: 3.8",  # Adjust to your Python version
     ],
 )

@@ -1,4 +1,3 @@
-from typing import Any, Dict, Callable, Tuple, Optional, List
 from functools import wraps
 import asyncio
 from .function_parser import (
@@ -7,6 +6,7 @@ from .function_parser import (
     FunctionOutputParam,
     FunctionInputParam,
 )
+from .function_parser.types import Any, Dict, Callable, Tuple, Optional, List
 
 
 def exposed_method(
