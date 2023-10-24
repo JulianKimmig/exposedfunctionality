@@ -1,0 +1,482 @@
+from __future__ import annotations
+from typing import Callable, TypedDict, Optional
+import re
+import warnings
+from .types import (
+    string_to_type,
+    type_to_string,
+    DocstringParserResult,
+)
+
+
+def _unify_parser_results(
+    result: DocstringParserResult, docstring=str
+) -> DocstringParserResult:
+    # default empty lists
+
+    result["original"] = docstring
+    if "input_params" not in result:
+        result["input_params"] = []
+    if "output_params" not in result:
+        result["output_params"] = []
+    if "exceptions" not in result:
+        result["exceptions"] = {}
+
+    if "summary" in result:
+        result["summary"] = result["summary"].strip()
+
+        if not result["summary"]:
+            del result["summary"]
+
+    # strip and remove empty descriptions
+    for param in result["input_params"]:
+        if "description" not in param:
+            param["description"] = None
+
+        if param["description"]:
+            param["description"] = param["description"].strip()
+
+            if "defaults to" in param["description"].lower():
+                pattern = r"[Dd]efaults to (`[^`]+`|'[^']+'|\"[^\"]+\"|[^\s.,]+)"
+                match = re.search(pattern, param["description"])
+                if match:
+                    description = param["description"]
+                    description = (
+                        description[: match.start()] + description[match.end() :]
+                    )
+                    default_val = match.group(1)
+
+                    param["default"] = default_val
+
+                    param["description"] = description.strip(" ,.")
+        if "default" in param and isinstance(param["default"], str):
+            if param["default"].startswith(("`", "'", '"')):
+                param["default"] = param["default"][1:-1]
+        if "default" in param and "type" in param:
+            param["default"] = string_to_type(param["type"])(param["default"])
+
+        if "type" in param:
+            param["type"] = type_to_string(param["type"])
+
+        if param["description"]:
+            param["description"] = (
+                param["description"]
+                .replace("  ", " ")
+                .replace(" .", ".")
+                .replace(" ,", ",")
+                .replace(" :", ":")
+                .replace(",.", ".")
+            ).strip()
+            # add dot if missing
+
+        if param["description"] and not param["description"].endswith("."):
+            param["description"] += "."
+
+        if "positional" not in param:
+            if "default" in param or ("optional" in param and param["optional"]):
+                param["positional"] = False
+            else:
+                param["positional"] = True
+
+        if "optional" not in param:
+            if "default" in param or not param["positional"]:
+                param["optional"] = True
+            else:
+                param["optional"] = False
+
+        if not param["description"]:
+            del param["description"]
+
+    for i, param in enumerate(result["output_params"]):
+        if "name" not in param:
+            param["name"] = f"out{i}" if len(result["output_params"]) > 1 else "out"
+
+        if "type" in param:
+            param["type"] = type_to_string(param["type"])
+
+    # strip and remove empty errors
+
+    for error in list(result["exceptions"].keys()):
+        result["exceptions"][error] = result["exceptions"][error].strip()
+
+    # strip  and remove empty return
+    for op in result["output_params"]:
+        if not "description" in op:
+            op["description"] = None
+
+        if op["description"]:
+            op["description"] = op["description"].strip()
+        if not op["description"]:
+            del op["description"]
+
+    # strip summary
+    if "summary" in result:
+        result["summary"] = result["summary"].strip()
+
+    return result
+
+
+def parse_restructured_docstring(docstring: str) -> DocstringParserResult:
+    """Extracts the parameter descriptions from a reStructuredText docstring.
+
+    Args:
+        docstring (str): The docstring from which the parameter descriptions are extracted.
+
+    Returns:
+        dict: A dictionary of parameter names to their descriptions.
+
+
+    Format:
+        ```[Summary]
+
+        :param [ParamName]: [ParamDescription], defaults to [DefaultParamVal]
+        :type [ParamName]: [ParamType](, optional)
+        ...
+        :raises [ErrorType]: [ErrorDescription]
+        ...
+        :return: [ReturnDescription]
+        :rtype: [ReturnType]
+        ```
+
+    Examples:
+    ```python
+    docstring = '''
+    This is a docstring.
+
+    :param a: The first parameter.
+    :param b: The second parameter.
+    '''
+    print(extract_param_descriptions_reStructuredText(docstring))
+    # Returns: {'a': 'The first parameter.', 'b': 'The second parameter.'}
+    ```
+    """
+
+    # prepend :summary: to the docstring
+    original_ = docstring
+    docstring = ":summary:\n" + docstring
+    lines = docstring.strip().split("\n")
+    lines = [line.strip() for line in lines if line.strip()]
+
+    sections = []
+    current_section = []
+    for line in lines:
+        if line.startswith(":") and current_section:
+            sections.append(current_section)
+            current_section = []
+        current_section.append(line)
+
+    # even empty docstring would have :summary:
+    sections.append(current_section)
+
+    sections = [" ".join(section) for section in sections]
+
+    result: DocstringParserResult = {
+        "input_params": [],
+        "output_params": [],
+        "exceptions": {},
+    }
+
+    for section in sections:
+        if section.startswith(":summary:"):
+            s = section.replace(":summary:", "").strip()
+            if s:
+                result["summary"] = s
+        elif section.startswith(":param"):
+            psection = section.replace(":param", "").strip()
+            param_match = re.match(r"([\w_]+):(.+)", psection)
+            if not param_match:
+                # maybe only a name is given
+                param_match = re.match(r"([\w_]+)", psection)
+
+                if not param_match:
+                    raise ValueError(f"Could not parse line '{line}' as parameter")
+            param = {"name": param_match.group(1)}
+
+            if len(param_match.groups()) > 1:
+                # if param_match.group(2): not necessary since by stripping it cannot be an empty string
+                param["description"] = param_match.group(2).strip()
+            else:
+                param["description"] = None
+            # default optional
+            param["optional"] = False
+
+            result["input_params"].append(param)
+        elif section.startswith(":type"):
+            if len(result["input_params"]) == 0:
+                raise ValueError("Type section without parameter")
+            psection = section.replace(":type", "").strip()
+
+            # get param name or last param
+            param = None
+            if ":" in psection:
+                param_name, psection = psection.split(":", 1)
+                param_name = param_name.strip()
+                if not param_name:
+                    # there is always one available otherwise it would have failes ~10 lines before:
+                    param_name = result["input_params"][-1]["name"]
+
+                for _param in result["input_params"]:
+                    if _param["name"] == param_name:
+                        param = _param
+                        break
+            else:
+                param = result["input_params"][-1]
+            if param is None:
+                raise ValueError(f"Could not find parameter for type section '{line}'")
+
+            _type = psection.strip()
+            if "optional" in _type:
+                param["optional"] = True
+                _types = [t.strip() for t in _type.replace("optional", "").split(",")]
+                _types = [t for t in _types if t]
+                if len(_types) >= 1:
+                    _type = _types[0]
+                else:
+                    _type = None
+            else:
+                param["optional"] = False
+            if _type:
+                param["type"] = string_to_type(_type)
+        elif section.startswith(":raises"):
+            rsection = section.replace(":raises", "").strip()
+            if ":" in rsection:
+                rsection += " "
+                raise_match = re.match(r"([\w_]+):(.+)", rsection)
+                if not raise_match:
+                    raise ValueError(f"Could not parse line '{line}' as raise")
+                result["exceptions"][raise_match.group(1)] = raise_match.group(
+                    2
+                ).strip()
+            else:
+                _excep = rsection.split()
+                if len(_excep) != 1:
+                    raise ValueError(f"Could not parse line '{line}' as raise")
+                result["exceptions"][_excep[0]] = ""
+        elif section.startswith(":return"):
+            rsection = section.replace(":return:", "").strip()
+            return_desc = {"description": rsection}
+            result["output_params"].append(return_desc)
+        elif section.startswith(":rtype"):
+            if len(result["output_params"]) == 0:
+                raise ValueError("Type section without return")
+            rsection = section.replace(":rtype:", "").strip()
+            result["output_params"][0]["type"] = string_to_type(rsection)
+
+    return _unify_parser_results(result, docstring=original_)
+
+
+def parse_google_docstring(docstring: str) -> DocstringParserResult:
+    """Extracts the parameter descriptions from a Google-style docstring.
+
+    Args:
+        docstring (str): The docstring from which the parameter descriptions are extracted.
+
+    Returns:
+        dict: A dictionary of parameter names to their descriptions.
+
+    Examples:
+    ```python
+    docstring = '''
+    This is a docstring.
+
+    Args:
+        a (int): The first parameter.
+            This continues.
+        b (int): The second parameter.
+    '''
+    print(extract_param_descriptions_google(docstring))
+    # Returns: {'a': 'The first parameter. This continues.', 'b': 'The second parameter.'}
+    ```
+
+    Format:
+        ```[Summary]
+
+        Args:
+            [ParamName] ([ParamType]): [ParamDescription]
+            ...
+        Raises:
+            [ErrorType]: [ErrorDescription]
+            ...
+        Returns:
+            [ReturnDescription]
+        ```
+    """
+
+    # Split the docstring by lines
+    pre_strip_lines = [line for line in docstring.split("\n") if line.strip()]
+
+    lines = [line.strip() for line in pre_strip_lines]
+
+    diffs = [len(line) - len(lines[i]) for i, line in enumerate(pre_strip_lines)]
+
+    if (len(set(diffs))) > 2:
+        warnings.warn(
+            f"More than two different initendation levels which might come from invalid formatted docstrings. Docstring:\n{docstring}"
+        )
+
+    section_intentation = (
+        min(diffs) if len(diffs) > 0 else 0
+    )  # check length for empty docstings
+
+    # Prepare the result object
+    result: DocstringParserResult = {
+        "input_params": [],
+        "output_params": [],
+        "exceptions": {},
+    }
+
+    # Define a variable to track the current section being parsed
+    section = "Sum"
+    last_param: Optional[dict] = None  # to append multi-line descriptions
+    last_exception = None
+    for li, line in enumerate(lines):
+        if line.startswith("Args:"):
+            section = "Args"
+        elif line.startswith("Returns:"):
+            section = "Returns"
+        elif line.startswith("Raises:"):
+            section = "Raises"
+        elif (
+            ":" in line
+            and line.split(":")[0].rstrip()
+            == pre_strip_lines[li].split(":")[0].rstrip()[section_intentation:]
+            and len(line.split(":")[0].rstrip().split()) == 1
+        ):
+            # unknown section
+            section = line.split(":")[0].rstrip()
+
+            warnings.warn(f"Encounterd unknown section: {section}")
+
+        else:
+            if section == "Sum":
+                if "summary" in result:
+                    result["summary"] += " " + line
+                else:
+                    result["summary"] = line
+            if section == "Args":
+                param_match_full = re.match(r"^(\w+) \(([\w\[\], ]+)\): (.+)$", line)
+                param_match_desc = re.match(r"^(\w+): (.+)$", line)
+                param_match_type = re.match(r"^(\w+) \(([\w\[\], ]+)\)$", line)
+                param_match_name_only = re.match(r"^(\w+):$", line)
+
+                if param_match_full:
+                    param_match = param_match_full
+                    name = param_match.group(1)
+                    type_opt = param_match.group(2)
+                    description = param_match.group(3)
+                elif param_match_type:
+                    param_match = param_match_type
+                    name = param_match.group(1)
+                    type_opt = param_match.group(2)
+                    description = ""
+                elif param_match_desc:
+                    param_match = param_match_desc
+                    name = param_match.group(1)
+                    type_opt = None
+                    description = param_match.group(2)
+                elif param_match_name_only:
+                    param_match = param_match_name_only
+                    name = param_match.group(1)
+                    type_opt = None
+                    description = None
+
+                else:
+                    last_param["description"] += " " + line
+                    continue
+
+                optional = False
+                if type_opt and "optional" in type_opt:
+                    optional = True
+                    type_opt = type_opt.split(",")
+                    if len(type_opt) > 1:
+                        type = type_opt[0]
+                    else:
+                        type = None
+                else:
+                    type = type_opt
+
+                param = {
+                    "name": name,
+                    "description": description,
+                    "optional": optional,
+                }
+                if type:
+                    param["type"] = string_to_type(type)
+                del type
+                result["input_params"].append(param)
+                last_param = param
+            elif section == "Returns":
+                return_match = re.match(r"([\w\[\], ]+): (.+)", line)
+                if return_match:
+                    return_param = {
+                        "type": string_to_type(return_match.group(1)),
+                        "description": return_match.group(2),
+                    }
+                    result["output_params"].append(return_param)
+                    last_param = return_param
+                elif last_param:
+                    last_param["description"] += " " + line
+            elif section == "Raises":
+                raise_match = re.match(r"(\w+):(.+)", line + " ")
+                if raise_match:
+                    last_exception = raise_match.group(1)
+                    result["exceptions"][last_exception] = (
+                        raise_match.group(2).strip()
+                    ).strip()
+
+                elif last_exception:
+                    result["exceptions"][last_exception] += " " + line
+
+    return _unify_parser_results(result, docstring)
+
+
+def select_extraction_function(docstring: str) -> Callable:
+    """
+    Determines the appropriate extraction function for a given docstring.
+
+    Args:
+        docstring (str): The docstring for which an extraction function is needed.
+
+    Returns:
+        Callable: The selected extraction function.
+    """
+    # Check for reStructuredText indicators
+    if ":param" in docstring:
+        return parse_restructured_docstring
+
+    if ":raises" in docstring:
+        return parse_restructured_docstring
+
+    if ":return" in docstring:
+        return parse_restructured_docstring
+
+    # Check for Google style indicators
+    # (Note: Google style is more general and may overlap with other styles,
+    # so we check it last)
+    param_pattern_google_with_types = (
+        r"^\s*([a-zA-Z_]\w*)\s?\(.*\):"  # match "param_name (param_type):"
+    )
+    param_pattern_google_no_types = r"^\s*([a-zA-Z_]\w*):"  # match "param_name:"
+    if re.search(param_pattern_google_with_types, docstring, re.MULTILINE):
+        return parse_google_docstring
+    if re.search(param_pattern_google_no_types, docstring, re.MULTILINE):
+        return parse_google_docstring
+
+    # If none match, return None or you could return a default function
+    return None
+
+
+def parse_docstring(docstring: str) -> DocstringParserResult:
+    """
+    Extracts the parameter descriptions from a docstring.
+
+    Args:
+        docstring (str): The docstring from which the parameter descriptions are extracted.
+
+    Returns:
+        dict: A dictionary of parameter names to their descriptions.
+    """
+    extraction_function = select_extraction_function(docstring)
+    if extraction_function is None:
+        return _unify_parser_results({"summary": docstring}, docstring=docstring)
+    return _unify_parser_results(extraction_function(docstring), docstring=docstring)
