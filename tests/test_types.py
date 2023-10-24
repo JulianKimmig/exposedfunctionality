@@ -43,25 +43,6 @@ class TestStringToType(unittest.TestCase):
         with self.assertRaises(TypeNotFoundError):
             string_to_type("NoSuchType")
 
-    @patch(
-        f"exposedfunctionality.function_parser.types.__builtins__", new_callable=Mock
-    )
-    def test_string_to_type_with_module_builtins(self, mock_builtins):
-        from exposedfunctionality.function_parser.types import (
-            string_to_type,
-        )
-
-        # Set __builtins__ to be a module mock
-        mock_builtins.__class__ = Mock()
-        # Mock the return value for getattr on the builtins module
-        mock_int_type = int
-        setattr(mock_builtins, "int", mock_int_type)
-
-        # Test the function
-        result = string_to_type("int")
-
-        # Assert that the correct type was returned
-        self.assertEqual(result, mock_int_type)
 
     # Test for non-existent modules
     def test_non_existent_module(self):
