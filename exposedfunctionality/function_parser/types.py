@@ -150,11 +150,11 @@ ALLOWED_BUILTINS = {
 }
 
 
-TYPE_GETTER: Dict[str, type] = {**ALLOWED_BUILTINS}
-STRING_GETTER: Dict[type, str] = {}
-for k, v in TYPE_GETTER.items():
-    if v not in STRING_GETTER:
-        STRING_GETTER[v] = k
+_TYPE_GETTER: Dict[str, type] = {**ALLOWED_BUILTINS}
+_STRING_GETTER: Dict[type, str] = {}
+for k, v in _TYPE_GETTER.items():
+    if v not in _STRING_GETTER:
+        _STRING_GETTER[v] = k
 
 
 def add_type(type_: type, name: str):
@@ -168,12 +168,12 @@ def add_type(type_: type, name: str):
     Raises:
     - ValueError if the type is already in the list.
     """
-    if name in TYPE_GETTER:
+    if name in _TYPE_GETTER:
         raise ValueError(f"Type '{name}' already exists.")
 
-    TYPE_GETTER[name] = type_
-    if type_ not in STRING_GETTER:
-        STRING_GETTER[type_] = name
+    _TYPE_GETTER[name] = type_
+    if type_ not in _STRING_GETTER:
+        _STRING_GETTER[type_] = name
 
 
 def string_to_type(string: str):
@@ -199,8 +199,8 @@ def string_to_type(string: str):
 
     string = string.strip()
 
-    if string in TYPE_GETTER:
-        return TYPE_GETTER[string]
+    if string in _TYPE_GETTER:
+        return _TYPE_GETTER[string]
 
     # Helper function to handle parameterized types
 
@@ -277,8 +277,8 @@ def type_to_string(t: Union[type, str]):
     if isinstance(t, str):
         return t
 
-    if t in STRING_GETTER:
-        return STRING_GETTER[t]
+    if t in _STRING_GETTER:
+        return _STRING_GETTER[t]
         # Handle common typing types
 
     def get_by_typing(t):

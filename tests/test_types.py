@@ -73,14 +73,13 @@ class TestStringToType(unittest.TestCase):
         with self.assertRaises(TypeNotFoundError):
             string_to_type("no_such_module.NoClass")
 
-    # Test using the TYPE_GETTER mechanism
     def test_type_getter(self):
         from exposedfunctionality.function_parser.types import (
             string_to_type,
-            TYPE_GETTER,
+            add_type,
         )
 
-        TYPE_GETTER["CustomTypeA"] = CustomTypeA
+        add_type(CustomTypeA, "CustomTypeA")
 
         self.assertEqual(string_to_type("CustomTypeA"), CustomTypeA)
 
@@ -140,24 +139,25 @@ class TestStringToType(unittest.TestCase):
 
 class TestAddType(unittest.TestCase):
     def setUp(self):
-        from exposedfunctionality.function_parser.types import TYPE_GETTER
+        from exposedfunctionality.function_parser.types import _TYPE_GETTER
 
-        self.initial_types = TYPE_GETTER.copy()
+        self.initial_types = _TYPE_GETTER.copy()
 
     def tearDown(self):
         from exposedfunctionality.function_parser import types
 
-        types.TYPE_GETTER = self.initial_types
+        types._TYPE_GETTER = self.initial_types
+        types._STRING_GETTER = {v: k for k, v in self.initial_types.items()}
 
     def test_add_new_type(self):
-        from exposedfunctionality.function_parser.types import add_type, TYPE_GETTER
+        from exposedfunctionality.function_parser.types import add_type, _TYPE_GETTER
 
         class NewType:
             pass
 
         add_type(NewType, "NewType")
-        self.assertIn("NewType", TYPE_GETTER)
-        self.assertEqual(TYPE_GETTER["NewType"], NewType)
+        self.assertIn("NewType", _TYPE_GETTER)
+        self.assertEqual(_TYPE_GETTER["NewType"], NewType)
 
     def test_add_existing_type_raises_error(self):
         from exposedfunctionality.function_parser.types import add_type
@@ -166,26 +166,26 @@ class TestAddType(unittest.TestCase):
             add_type(int, "int")
 
     def test_adding_duplicate_type_does_not_override(self):
-        from exposedfunctionality.function_parser.types import add_type, TYPE_GETTER
+        from exposedfunctionality.function_parser.types import add_type, _TYPE_GETTER
 
         class DuplicateType:
             pass
 
         add_type(int, "DuplicateType")
 
-        self.assertEqual(TYPE_GETTER["int"], TYPE_GETTER["DuplicateType"])
-        self.assertEqual(TYPE_GETTER["DuplicateType"], int)
+        self.assertEqual(_TYPE_GETTER["int"], _TYPE_GETTER["DuplicateType"])
+        self.assertEqual(_TYPE_GETTER["DuplicateType"], int)
 
 
 class TestGeneral(unittest.TestCase):
     def test_STRING_GETTER_populated_correctly(self):
         from exposedfunctionality.function_parser.types import (
-            STRING_GETTER,
-            TYPE_GETTER,
+            _STRING_GETTER,
+            _TYPE_GETTER,
         )
 
-        for k, v in TYPE_GETTER.items():
-            self.assertIn(v, STRING_GETTER)
+        for k, v in _TYPE_GETTER.items():
+            self.assertIn(v, _STRING_GETTER)
 
 
 class TestTypeToString(unittest.TestCase):
