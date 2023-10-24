@@ -4,6 +4,18 @@ from time import time
 from typing import List, Dict, Tuple, Optional, Set
 
 
+class CustomTypeT:
+    pass
+
+
+class CustomTypeA:
+    pass
+
+
+class CustomTypeB:
+    pass
+
+
 class TestStringToType(unittest.TestCase):
     # Test for built-in types
     def test_builtin_types(self):
@@ -68,12 +80,9 @@ class TestStringToType(unittest.TestCase):
             TYPE_GETTER,
         )
 
-        class CustomType:
-            pass
+        TYPE_GETTER["CustomTypeA"] = CustomTypeA
 
-        TYPE_GETTER["CustomType"] = CustomType
-
-        self.assertEqual(string_to_type("CustomType"), CustomType)
+        self.assertEqual(string_to_type("CustomTypeA"), CustomTypeA)
 
     @patch("exposedfunctionality.function_parser.types.importlib.import_module")
     def test_module_import_without_class(self, mock_import_module):
@@ -179,10 +188,6 @@ class TestGeneral(unittest.TestCase):
             self.assertIn(v, STRING_GETTER)
 
 
-class CustomType:
-    pass
-
-
 class TestTypeToString(unittest.TestCase):
     """
     Test class for the type_to_string function.
@@ -209,12 +214,9 @@ class TestTypeToString(unittest.TestCase):
     def test_custom_types_to_string(self):
         from exposedfunctionality.function_parser.types import type_to_string, add_type
 
-        class CustomType:
-            pass
-
         t = str(time())  # since custom tyoe might be added in another test
-        add_type(CustomType, "CustomType" + t)
-        self.assertEqual(type_to_string(CustomType), "CustomType" + t)
+        add_type(CustomTypeT, "CustomType" + t)
+        self.assertEqual(type_to_string(CustomTypeT), "CustomType" + t)
 
     def test_unknown_type_raises_error(self):
         from exposedfunctionality.function_parser.types import (
@@ -271,7 +273,7 @@ class TestTypeToString(unittest.TestCase):
         """
         from exposedfunctionality.function_parser.types import type_to_string
 
-        self.assertEqual(type_to_string(CustomType), "test_types.CustomType")
+        self.assertEqual(type_to_string(CustomTypeB), "test_types.CustomTypeB")
 
     def test_unknown_type(self):
         """
