@@ -7,6 +7,7 @@ from typing import (
     Type,
     Tuple,
     Set,
+    get_type_hints,
 )
 
 if sys.version_info >= (3, 8):

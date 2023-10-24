@@ -1,11 +1,12 @@
 from __future__ import annotations
-from typing import Callable, TypedDict, Optional
 import re
 import warnings
 from .types import (
     string_to_type,
     type_to_string,
     DocstringParserResult,
+    Callable,
+    Optional,
 )
 
 
