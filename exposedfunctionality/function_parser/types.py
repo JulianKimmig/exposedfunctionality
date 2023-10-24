@@ -1,88 +1,110 @@
 from __future__ import annotations
 import importlib
-from typing import Dict
+import sys
+import re
 from typing import (
-    Optional,
-    Any,
-    TypedDict,
-    Required,
-    List,
     Union,
     Type,
     Tuple,
     Set,
-    Callable,
 )
-import re
+
+if sys.version_info >= (3, 8):
+    from typing import TypedDict, Optional, List, Callable, Dict, Any
+
+    USE_TYPED_DICT = True
+else:
+    USE_TYPED_DICT = False
+
+    class TypedDict(dict):
+        pass
+
+    Optional = Union
+
+    Dict = dict
+    List = list
+    Callable = callable
+    Any = object
 
 
-class Endpoint(TypedDict, total=False):
-    """Type definition for an endpoint"""
-
-    middleware: Optional[List[Callable[[Any], Any]]]
-
-
-class FunctionInputParam(TypedDict, total=False):
-    """Type definition for a function parameter
-
-    Parameters:
-    - name: The name of the parameter
-    - default: The default value of the parameter
-    - type: The type of the parameter
-    - positional: Whether the parameter is positional
-    - optional: Whether the parameter is optional
-    - description: The description of the parameter
-    - middleware: A list of functions that can be used to transform the parameter value
-    - endpoints:  A dictionary of endpoints that can be used to represent the parameter value in different contexts
-    """
-
-    name: Required[str]
-    default: Any
-    type: Required[str]
-    positional: Required[bool]
-    optional: bool
-    description: Optional[str]
-    middleware: Optional[List[Callable[[Any], Any]]]
-    endpoints: Optional[Dict[str, Endpoint]]
+try:
+    from typing import Required
+except ImportError:
+    Required = Union
 
 
-class FunctionOutputParam(TypedDict):
-    """Type definition for an output parameter
+if USE_TYPED_DICT:
 
-    Parameters:
-    - name: The name of the parameter
-    - type: The type of the parameter
-    - description: The description of the parameter
-    - endpoints:  A dictionary of endpoints that can be used to represent the parameter value in different contexts
-    """
+    class Endpoint(TypedDict, total=False):
+        """Type definition for an endpoint"""
 
-    name: str
-    type: str
-    description: Optional[str]
-    endpoints: Optional[Dict[str, Endpoint]]
+        middleware: Optional[List[Callable[[Any], Any]]]
 
+    class FunctionInputParam(TypedDict, total=False):
+        """Type definition for a function parameter
 
-class SerializedFunction(TypedDict):
-    """Type definition for a serialized function"""
+        Parameters:
+        - name: The name of the parameter
+        - default: The default value of the parameter
+        - type: The type of the parameter
+        - positional: Whether the parameter is positional
+        - optional: Whether the parameter is optional
+        - description: The description of the parameter
+        - middleware: A list of functions that can be used to transform the parameter value
+        - endpoints:  A dictionary of endpoints that can be used to represent the parameter value in different contexts
+        """
 
-    name: str
-    input_params: List[FunctionInputParam]
-    output_params: List[FunctionOutputParam]
-    docstring: Optional[DocstringParserResult]
+        name: Required[str]
+        default: Any
+        type: Required[str]
+        positional: Required[bool]
+        optional: bool
+        description: Optional[str]
+        middleware: Optional[List[Callable[[Any], Any]]]
+        endpoints: Optional[Dict[str, Endpoint]]
+
+    class FunctionOutputParam(TypedDict):
+        """Type definition for an output parameter
+
+        Parameters:
+        - name: The name of the parameter
+        - type: The type of the parameter
+        - description: The description of the parameter
+        - endpoints:  A dictionary of endpoints that can be used to represent the parameter value in different contexts
+        """
+
+        name: str
+        type: str
+        description: Optional[str]
+        endpoints: Optional[Dict[str, Endpoint]]
+
+    class SerializedFunction(TypedDict):
+        """Type definition for a serialized function"""
+
+        name: str
+        input_params: List[FunctionInputParam]
+        output_params: List[FunctionOutputParam]
+        docstring: Optional[DocstringParserResult]
+
+    class DocstringParserResult(TypedDict, total=False):
+        """Type definition for a standardized parsed docstring"""
+
+        original: str
+        input_params: list[FunctionInputParam]
+        output_params: list[FunctionOutputParam]
+        summary: Optional[str]
+        exceptions: dict[str, str]
+
+else:
+    Endpoint = dict
+    FunctionInputParam = dict
+    FunctionOutputParam = dict
+    SerializedFunction = dict
+    DocstringParserResult = dict
 
 
 class FunctionParamError(Exception):
     """Base class for function parameter errors"""
-
-
-class DocstringParserResult(TypedDict, total=False):
-    """Type definition for a standardized parsed docstring"""
-
-    original: str
-    input_params: list[FunctionInputParam]
-    output_params: list[FunctionOutputParam]
-    summary: Optional[str]
-    exceptions: dict[str, str]
 
 
 class UnknownSectionError(Exception):
