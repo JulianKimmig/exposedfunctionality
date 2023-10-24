@@ -233,7 +233,7 @@ class TestTypeToString(unittest.TestCase):
             pass
 
         with self.assertRaises(TypeNotFoundError):
-            ans = type_to_string(UnknownType)
+            _ = type_to_string(UnknownType)
 
     def test_typing_types(self):
         from exposedfunctionality.function_parser.types import type_to_string
@@ -256,18 +256,6 @@ class TestTypeToString(unittest.TestCase):
                 type_to_string(List[Union[int, str]]), "List[Union[int, str]]"
             )
             self.assertEqual(type_to_string(List[List[int]]), "List[List[int]]")
-
-    def test_typing_types(self):
-        """
-        Test conversion of typing types (like Optional, List, Union, etc.) to string representation.
-        """
-        from exposedfunctionality.function_parser.types import type_to_string
-
-        self.assertEqual(type_to_string(Optional[int]), "Union[int, None]")
-        self.assertEqual(type_to_string(List[int]), "List[int]")
-        self.assertEqual(type_to_string(Dict[int, str]), "Dict[int, str]")
-        self.assertEqual(type_to_string(Tuple[int, str]), "Tuple[int, str]")
-        # ... add other typing types as needed
 
     def test_custom_type(self):
         """
