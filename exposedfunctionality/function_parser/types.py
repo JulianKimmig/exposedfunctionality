@@ -257,11 +257,11 @@ def string_to_type(string: str):
             return Dict[string_to_type(key), string_to_type(value)]
         elif main_type == "Tuple":
             items = tuple(map(string_to_type, content.split(",")))
-            return Tuple[*items]
+            return Tuple[items]
         elif main_type == "Union":
             subtypes = tuple(map(string_to_type, content.split(",")))
             if len(subtypes) >= 2:
-                return Union[*subtypes]  # type: ignore # mypy doesn't like the splat operator
+                return Union[subtypes]  # type: ignore # mypy doesn't like the splat operator
             else:
                 return subtypes[0]
         elif main_type == "Optional":
@@ -274,7 +274,7 @@ def string_to_type(string: str):
             items = [item.strip() for item in content.split(",")]
             items = [item for item in items if item]
             items = tuple([ast.literal_eval(item.strip()) for item in items])
-            return Literal[*items]  # type: ignore # mypy doesn't like the splat operator
+            return Literal[items]  # type: ignore # mypy doesn't like the splat operator
         else:
             raise TypeNotFoundError(string)
 
