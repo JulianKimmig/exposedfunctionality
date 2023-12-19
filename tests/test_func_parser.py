@@ -12,7 +12,7 @@ class TestFunctionSerialization(unittest.TestCase):
         from exposedfunctionality.function_parser import get_resolved_signature
 
         # Test basic function
-        def func(a, b=1, c=2):
+        def func(a, b=1, c=2):  # pylint: disable=unused-argument
             pass
 
         sig, _ = get_resolved_signature(func)
@@ -113,7 +113,7 @@ class TestFunctionSerialization(unittest.TestCase):
             function_method_parser,
         )
 
-        def exp_func(a: int) -> SerializedFunction:
+        def exp_func(a: int) -> SerializedFunction:  # pylint: disable=unused-argument
             pass
 
         result = function_method_parser(exp_func)
@@ -134,7 +134,7 @@ class TestFunctionSerialization(unittest.TestCase):
         from exposedfunctionality.function_parser import function_method_parser
 
         # Test function with no type hints
-        def no_hints(a, b):
+        def no_hints(a, b):  # pylint: disable=unused-argument
             pass
 
         result = function_method_parser(no_hints)
@@ -172,7 +172,9 @@ class TestFunctionSerialization(unittest.TestCase):
         )
 
         # Test unserializable default
-        def unserializable_default(a={"unserializable": set()}):
+        def unserializable_default(
+            a={"unserializable": set()},
+        ):  # pylint: disable=unused-argument, dangerous-default-value
             pass
 
         with self.assertRaises(FunctionParamError):
@@ -182,7 +184,7 @@ class TestFunctionSerialization(unittest.TestCase):
         from exposedfunctionality.function_parser import function_method_parser
 
         # Test function with type hint from docstring
-        def docstring_type(a, b=1) -> int:
+        def docstring_type(a, b=1) -> int:  # pylint: disable=unused-argument
             """Args:
             a (int): This is an integer.
             b (int, optional): This is an optional integer. Defaults to 1
@@ -191,7 +193,6 @@ class TestFunctionSerialization(unittest.TestCase):
                 int: the result.
 
             """
-            pass
 
         result = function_method_parser(docstring_type)
 
@@ -239,7 +240,8 @@ class TestFunctionSerialization(unittest.TestCase):
                 "output_params": [
                     {"description": "the result.", "name": "out", "type": "int"}
                 ],
-                "original": "Args:\na (int): This is an integer.\nb (int, optional): This is an optional integer. Defaults to 1\n\nReturns:\n    int: the result.",
+                "original": "Args:\na (int): This is an integer.\nb (int, optional): This is an optional "
+                "integer. Defaults to 1\n\nReturns:\n    int: the result.",
             },
         }
 
@@ -249,7 +251,7 @@ class TestFunctionSerialization(unittest.TestCase):
         from exposedfunctionality.function_parser import function_method_parser
 
         # Test function with type hint from docstring
-        def docstring_type(a: int, b=None):
+        def docstring_type(a: int, b=None):  # pylint: disable=unused-argument
             """
             Args:
                 a (float): This is an integer.
@@ -260,7 +262,6 @@ class TestFunctionSerialization(unittest.TestCase):
                 float: the second result.
 
             """
-            pass
 
         result = function_method_parser(docstring_type)
 
@@ -318,7 +319,9 @@ class TestFunctionSerialization(unittest.TestCase):
                         "type": "float",
                     },
                 ],
-                "original": "Args:\n    a (float): This is an integer.\n    b (int, optional): This is an optional integer. Defaults to 1\n\nReturns:\n    int: the result.\n    float: the second result.",
+                "original": "Args:\n    a (float): This is an integer.\n    "
+                "b (int, optional): This is an optional integer. Defaults to 1\n\nReturns:\n    "
+                "int: the result.\n    float: the second result.",
             },
         }
 
@@ -332,33 +335,33 @@ class TestGetResolvedSignature(unittest.TestCase):
         """Test the behavior with simple functions with no preset arguments."""
         from exposedfunctionality.function_parser import get_resolved_signature
 
-        def example(a, b=2):
+        def example(a, b=2):  # pylint: disable=unused-argument
             pass
 
-        sig, base_func = get_resolved_signature(example)
+        sig, _ = get_resolved_signature(example)
         self.assertEqual(str(sig), "(a, b=2)")
 
     def test_partial_function(self):
         """Test the behavior with partial functions."""
         from exposedfunctionality.function_parser import get_resolved_signature
 
-        def example(a, b, c=3):
+        def example(a, b, c=3):  # pylint: disable=unused-argument
             pass
 
         p = partial(example, 1)
-        sig, base_func = get_resolved_signature(p)
+        sig, _ = get_resolved_signature(p)
         self.assertEqual(str(sig), "(b, c=3)")
 
     def test_nested_partial(self):
         """Test the behavior with nested partial functions."""
         from exposedfunctionality.function_parser import get_resolved_signature
 
-        def example(a, b, c=3, d=4):
+        def example(a, b, c=3, d=4):  # pylint: disable=unused-argument
             pass
 
         p = partial(example, 1, d=5)
         p2 = partial(p, 2)
-        sig, base_func = get_resolved_signature(p2)
+        sig, _ = get_resolved_signature(p2)
         self.assertEqual(str(sig), "(c=3)")
 
     def test_class_method(self):
@@ -370,7 +373,7 @@ class TestGetResolvedSignature(unittest.TestCase):
                 pass
 
         t = TestClass()
-        sig, base_func = get_resolved_signature(t.method)
+        sig, _ = get_resolved_signature(t.method)
         self.assertEqual(str(sig), "(a, b)")
 
     def test_class_method_with_partial(self):
@@ -383,7 +386,7 @@ class TestGetResolvedSignature(unittest.TestCase):
 
         t = TestClass()
         p = partial(t.method, 1)
-        sig, base_func = get_resolved_signature(p)
+        sig, _ = get_resolved_signature(p)
         self.assertEqual(str(sig), "(b, c=3)")
 
     def test_class_static_method(self):
@@ -395,7 +398,7 @@ class TestGetResolvedSignature(unittest.TestCase):
             def static_method(a, b):
                 pass
 
-        sig, base_func = get_resolved_signature(TestClass.static_method)
+        sig, _ = get_resolved_signature(TestClass.static_method)
         self.assertEqual(str(sig), "(a, b)")
 
     def test_class_method_from_class(self):
@@ -406,5 +409,5 @@ class TestGetResolvedSignature(unittest.TestCase):
             def method(self, a, b, c=3):
                 pass
 
-        sig, base_func = get_resolved_signature(TestClass.method)
+        sig, _ = get_resolved_signature(TestClass.method)
         self.assertEqual(str(sig), "(a, b, c=3)")

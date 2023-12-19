@@ -109,7 +109,8 @@ class TestExposedValue(unittest.TestCase):
         parent_exc = exc.__cause__
         self.assertEqual(
             str(parent_exc),
-            "Can convert default value of type <class 'float'> to <class 'int'>, and back again, but not without loss of information.",
+            "Can convert default value of type <class 'float'> to <class 'int'>, "
+            "and back again, but not without loss of information.",
         )
 
 
@@ -145,14 +146,16 @@ class TestExposedValueFunctions(unittest.TestCase):
 
     def test_add_exposed_value_class(self):
         """Test dynamically adding an ExposedValue to a class."""
-        from exposedfunctionality import add_exposed_value, get_exposed_values
+        from exposedfunctionality import add_exposed_value
 
         class TestClass:
             pass
 
         add_exposed_value(TestClass, "new_attr", 20, int)
         instance = TestClass()
-        self.assertEqual(instance.new_attr, 20)
+        self.assertEqual(instance.new_attr, 20)  # noqa: E1101 pylint: disable=E1101
+
+        # type: ignore # of course it does not exist on checking
 
         # Test if adding an already existing attribute raises error
         with self.assertRaises(AttributeError):
@@ -246,7 +249,7 @@ class TestExposedValueFunctions(unittest.TestCase):
         self.assertEqual(tc3.attr2, 10)
         add_exposed_value(tc3, "attr3", 20, int)
 
-        self.assertEqual(tc3.attr3, 20)
+        self.assertEqual(tc3.attr3, 20)  # noqa: E1101 pylint: disable=E1101
         self.assertEqual(tc3.__class__.__name__, "__TestClass")
         tc3.attr2 = 30
 
