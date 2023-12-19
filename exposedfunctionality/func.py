@@ -22,6 +22,48 @@ from .function_parser.types import (
 )
 
 
+def expose_method(
+    func: Callable[..., ReturnType],
+    name: Optional[str] = None,
+    inputs: Optional[List[FunctionInputParam]] = None,
+    outputs: Optional[List[FunctionOutputParam]] = None,
+) -> ExposedFunction[ReturnType]:
+    """
+    Expose a method by adding the necessary metadata to the function.
+
+    Args:
+        func (Callable[..., ReturnType]): Method to be exposed.
+        name (Optional[str], optional): Name of the method. Defaults to None.
+        inputs (Optional[List[FunctionInputParam]], optional): List of input parameters. Defaults to None.
+        outputs (Optional[List[FunctionOutputParam]], optional): List of output parameters. Defaults to None.
+
+    Returns:
+        ExposedFunction[ReturnType]: Exposed method, which is the original function with added information, not a copy.
+    """
+
+    serfunc = function_method_parser(func)
+    if outputs is not None:
+        for i, o in enumerate(outputs):
+            if i >= len(serfunc["output_params"]):
+                serfunc["output_params"].append(o)
+            else:
+                serfunc["output_params"][i].update(o)
+
+    if inputs is not None:
+        for i, o in enumerate(inputs):
+            if i >= len(serfunc["input_params"]):
+                serfunc["input_params"].append(o)
+            else:
+                serfunc["input_params"][i].update(o)
+
+    if name is not None:
+        serfunc["name"] = name
+    func: ExposedFunction[ReturnType] = func
+    func._is_exposed_method = True  # pylint: disable=W0212
+    func.ef_funcmeta: SerializedFunction = serfunc
+    return func
+
+
 def exposed_method(
     name: Optional[str] = None,
     inputs: Optional[List[FunctionInputParam]] = None,
@@ -48,27 +90,7 @@ def exposed_method(
     """
 
     def decorator(func: Callable[..., ReturnType]) -> ExposedFunction[ReturnType]:
-        serfunc = function_method_parser(func)
-        if outputs is not None:
-            for i, o in enumerate(outputs):
-                if i >= len(serfunc["output_params"]):
-                    serfunc["output_params"].append(o)
-                else:
-                    serfunc["output_params"][i].update(o)
-
-        if inputs is not None:
-            for i, o in enumerate(inputs):
-                if i >= len(serfunc["input_params"]):
-                    serfunc["input_params"].append(o)
-                else:
-                    serfunc["input_params"][i].update(o)
-
-        if name is not None:
-            serfunc["name"] = name
-        func: ExposedFunction[ReturnType] = func
-        func._is_exposed_method = True  # pylint: disable=W0212
-        func.ef_funcmeta: SerializedFunction = serfunc
-        return func
+        return expose_method(func, name=name, inputs=inputs, outputs=outputs)
 
     return decorator
 
@@ -107,7 +129,19 @@ def is_exposed_method(
 def assure_exposed_method(
     obj: Union[Callable[..., ReturnType], ExposedFunction[ReturnType]], **kwargs
 ) -> ExposedFunction[ReturnType]:
-    if hasattr(obj, "ef_funcmeta"):
+    """
+    Assure that a method is exposed. If it is already exposed, it is returned as is.
+    If it is not exposed, it is exposed with the given kwargs.
+
+    Args:
+        obj (Union[Callable[..., ReturnType], ExposedFunction[ReturnType]]): Method to be exposed.
+        **kwargs: Keyword arguments passed to expose_method.
+
+    Returns:
+        ExposedFunction[ReturnType]: Exposed method.
+    """
+
+    if is_exposed_method(obj):
         return obj
 
-    return exposed_method(**kwargs)(obj)
+    return expose_method(obj, **kwargs)
