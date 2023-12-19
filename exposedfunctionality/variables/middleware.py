@@ -2,6 +2,10 @@
 Middleware functions for variables exposed to the user
 
 """
+from typing import (
+    Optional,
+    Union,
+)
 from .core import (
     ExposedValueData,
 )
@@ -10,16 +14,16 @@ from .core import (
 def min_max_clamp(
     value,
     valuedata: ExposedValueData,
-    min: int | float = None,  # pylint: disable=redefined-builtin
-    max: int | float = None,  # pylint: disable=redefined-builtin
+    min: Optional[Union[int, float]] = None,  # pylint: disable=redefined-builtin
+    max: Optional[Union[int, float]] = None,  # pylint: disable=redefined-builtin
 ):
     """Clamps a value between min and max
 
     Args:
         value (Any): Value to clamp
         valuedata (ExposedValueData): Value data
-        min (int | float, optional): Minimum value. Defaults to None.
-        max (int | float, optional): Maximum value. Defaults to None.
+        min (Optional[Union[int, float]]): Minimum value. Defaults to None.
+        max (Optional[Union[int, float]]): Maximum value. Defaults to None.
 
     Raises:
         ValueError: If max < min
