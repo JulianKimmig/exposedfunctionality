@@ -2,6 +2,7 @@
 This module contains the exposed_method decorator and related functions
 for exposing methods to the frontend.
 """
+from __future__ import annotations
 from .function_parser import (
     function_method_parser,
     SerializedFunction,
