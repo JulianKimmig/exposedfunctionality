@@ -2,6 +2,7 @@
 This module contains the exposed_method decorator and related functions
 for exposing methods to the frontend.
 """
+from __future__ import annotations
 from .function_parser import (
     function_method_parser,
     SerializedFunction,
@@ -17,6 +18,7 @@ from .function_parser.types import (
     List,
     ExposedFunction,
     ReturnType,
+    Union,
 )
 
 
@@ -94,15 +96,16 @@ def get_exposed_methods(obj: Any) -> Dict[str, Tuple[Callable, SerializedFunctio
 
 
 def is_exposed_method(
-    obj: Callable[..., ReturnType] | ExposedFunction[ReturnType],
+    obj: Union[Callable[..., ReturnType], ExposedFunction[ReturnType]],
 ) -> bool:
     return (
-        hasattr(obj, "_is_exposed_method") and obj._is_exposed_method  # pylint: disable=W0212
+        hasattr(obj, "_is_exposed_method")
+        and obj._is_exposed_method  # pylint: disable=W0212
     )
 
 
 def assure_exposed_method(
-    obj: Callable[..., ReturnType] | ExposedFunction[ReturnType], **kwargs
+    obj: Union[Callable[..., ReturnType], ExposedFunction[ReturnType]], **kwargs
 ) -> ExposedFunction[ReturnType]:
     if hasattr(obj, "ef_funcmeta"):
         return obj
