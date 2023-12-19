@@ -3,6 +3,7 @@ from exposedfunctionality import (
     exposed_method,
     get_exposed_methods,
     assure_exposed_method,
+    is_exposed_method,
 )
 
 
@@ -18,9 +19,8 @@ class TestExposedMethodDecorator(unittest.TestCase):
         def example_func():
             pass
 
-        self.assertTrue(hasattr(example_func, "_exposed_method"))
-        self.assertTrue(example_func._exposed_method)
-        self.assertEqual(example_func._funcmeta["name"], "new_name")
+        self.assertTrue(is_exposed_method(example_func))
+        self.assertEqual(example_func.ef_funcmeta["name"], "new_name")
 
     def test_decorator_with_input_output_params(self):
         """Test that exposed_method correctly adds or updates input and output params."""
@@ -39,10 +39,10 @@ class TestExposedMethodDecorator(unittest.TestCase):
         def example_func(param1: int) -> int:
             return param1
 
-        self.assertEqual(len(example_func._funcmeta["input_params"]), 2)
-        self.assertEqual(len(example_func._funcmeta["output_params"]), 2)
-        self.assertEqual(example_func._funcmeta["input_params"][0]["name"], "param1")
-        self.assertEqual(example_func._funcmeta["output_params"][0]["name"], "result")
+        self.assertEqual(len(example_func.ef_funcmeta["input_params"]), 2)
+        self.assertEqual(len(example_func.ef_funcmeta["output_params"]), 2)
+        self.assertEqual(example_func.ef_funcmeta["input_params"][0]["name"], "param1")
+        self.assertEqual(example_func.ef_funcmeta["output_params"][0]["name"], "result")
 
         expected = function_method_parser(example_func)
         expected["name"] = "new_name"
@@ -51,7 +51,7 @@ class TestExposedMethodDecorator(unittest.TestCase):
         expected["input_params"].append(inputs[1])
         expected["output_params"].append(outputs[1])
 
-        self.assertEqual(example_func._funcmeta, expected)
+        self.assertEqual(example_func.ef_funcmeta, expected)
 
 
 class TestGetExposedMethods(unittest.TestCase):
@@ -89,9 +89,8 @@ class TestAssureExposedMethod(unittest.TestCase):
 
         exposed_func = assure_exposed_method(example_func, name="new_name")
 
-        self.assertTrue(hasattr(exposed_func, "_exposed_method"))
-        self.assertTrue(exposed_func._exposed_method)
-        self.assertEqual(exposed_func._funcmeta["name"], "new_name")
+        self.assertTrue(is_exposed_method(exposed_func))
+        self.assertEqual(exposed_func.ef_funcmeta["name"], "new_name")
 
     def test_already_exposed_function(self):
         """Test that assure_exposed_method returns the function as-is if it's already exposed."""
@@ -103,7 +102,7 @@ class TestAssureExposedMethod(unittest.TestCase):
         exposed_func = assure_exposed_method(example_func, name="new_name")
 
         # Should remain with the original name since it's already exposed
-        self.assertEqual(exposed_func._funcmeta["name"], "original_name")
+        self.assertEqual(exposed_func.ef_funcmeta["name"], "original_name")
 
 
 if __name__ == "__main__":

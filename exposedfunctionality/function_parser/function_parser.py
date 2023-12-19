@@ -1,32 +1,31 @@
 from __future__ import annotations
 
 
-
 import warnings
 import inspect
 from functools import partial
 import json
 from .docstring_parser import parse_docstring
+from typing import get_type_hints
 from .types import (
     SerializedFunction,
     DocstringParserResult,
     FunctionParamError,
     FunctionInputParam,
-    FunctionOutputParam,
     type_to_string,
     Optional,
     Any,
-    get_type_hints,
     Callable,
     List,
     Tuple,
-    NoneType
+    NoneType,
+    ReturnType,
 )
 
 
 def get_resolved_signature(
-    func: Callable[..., Any], class_member_attributes: Optional[List[str]] = None
-) -> Tuple[inspect.Signature, Callable]:
+    func: Callable[..., ReturnType], class_member_attributes: Optional[List[str]] = None
+) -> Tuple[inspect.Signature, Callable[..., ReturnType]]:
     """
     Get the resolved signature of a callable. If the callable is a functools.partial
     instance, it resolves the signature by excluding parameters that have already
@@ -102,7 +101,8 @@ def function_method_parser(
 
     Parameters:
     - func (Callable): The function or method to parse. If the callable is an instance of `functools.partial`,
-                       the parser will resolve the signature excluding parameters that have already been set in the partial.
+                       the parser will resolve the signature excluding parameters that have
+                       already been set in the partial.
 
     Returns:
     - SerializedFunction: A dictionary containing:
@@ -111,10 +111,13 @@ def function_method_parser(
         - name (str): Name of the parameter.
         - default (Any, optional): Default value of the parameter if specified. Omitted if no default is provided.
         - type (type): Type hint of the parameter. Defaults to `Any` if no type hint is provided.
-        - positional (bool): True if the parameter is positional or can be passed as a keyword argument, otherwise False.
+        - positional (bool): True if the parameter is positional or can be passed as a keyword argument,
+          otherwise False.
         - optional (bool, optional): True if the parameter is optional, otherwise False.
-        - description (str, optional): Description of the parameter extracted from the function's docstring (if present).
-      * output_params (list[FunctionOutputParam]): A list of dictionaries, each representing an output parameter (or return type) with:
+        - description (str, optional): Description of the parameter extracted from the function's
+          docstring (if present).
+      * output_params (list[FunctionOutputParam]): A list of dictionaries, each representing an
+        output parameter (or return type) with:
         - name (str): Name of the output. It can be "out" or "outX" (where X is an index) depending on the return type.
         - type (type): Type hint of the output.
         - description (str, optional): Description of the output extracted from the function's docstring (if present).

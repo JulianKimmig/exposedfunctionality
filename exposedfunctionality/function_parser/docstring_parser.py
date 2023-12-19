@@ -6,7 +6,6 @@ from .types import (
     type_to_string,
     DocstringParserResult,
     Callable,
-    Optional,
 )
 
 
@@ -102,7 +101,7 @@ def _unify_parser_results(
 
     # strip  and remove empty return
     for op in result["output_params"]:
-        if not "description" in op:
+        if "description" not in op:
             op["description"] = None
 
         if op["description"]:
@@ -190,7 +189,7 @@ def parse_restructured_docstring(docstring: str) -> DocstringParserResult:
                 param_match = re.match(r"([\w_]+)", psection)
 
                 if not param_match:
-                    raise ValueError(f"Could not parse line '{line}' as parameter")
+                    raise ValueError(f"Could not parse line '{section}' as parameter")
             param = {"name": param_match.group(1)}
 
             if len(param_match.groups()) > 1:
@@ -223,7 +222,9 @@ def parse_restructured_docstring(docstring: str) -> DocstringParserResult:
             else:
                 param = result["input_params"][-1]
             if param is None:
-                raise ValueError(f"Could not find parameter for type section '{line}'")
+                raise ValueError(
+                    f"Could not find parameter for type section '{section}'"
+                )
 
             _type = psection.strip()
             if "optional" in _type:
@@ -244,14 +245,14 @@ def parse_restructured_docstring(docstring: str) -> DocstringParserResult:
                 rsection += " "
                 raise_match = re.match(r"([\w_]+):(.+)", rsection)
                 if not raise_match:
-                    raise ValueError(f"Could not parse line '{line}' as raise")
+                    raise ValueError(f"Could not parse line '{section}' as raise")
                 result["exceptions"][raise_match.group(1)] = raise_match.group(
                     2
                 ).strip()
             else:
                 _excep = rsection.split()
                 if len(_excep) != 1:
-                    raise ValueError(f"Could not parse line '{line}' as raise")
+                    raise ValueError(f"Could not parse line '{section}' as raise")
                 result["exceptions"][_excep[0]] = ""
         elif section.startswith(":return"):
             rsection = section.replace(":return:", "").strip()
@@ -312,7 +313,8 @@ def parse_google_docstring(docstring: str) -> DocstringParserResult:
 
     if (len(set(diffs))) > 2:
         warnings.warn(
-            f"More than two different initendation levels which might come from invalid formatted docstrings. Docstring:\n{docstring}"
+            "More than two different initendation levels which might come from invalid formatted docstrings."
+            f"Docstring:\n{docstring}"
         )
 
     section_intentation = (
@@ -328,7 +330,7 @@ def parse_google_docstring(docstring: str) -> DocstringParserResult:
 
     # Define a variable to track the current section being parsed
     section = "Sum"
-    last_param: Optional[dict] = None  # to append multi-line descriptions
+    last_param: dict = {}  # to append multi-line descriptions
     last_exception = None
     for li, line in enumerate(lines):
         if line.startswith("Args:"):
@@ -390,20 +392,20 @@ def parse_google_docstring(docstring: str) -> DocstringParserResult:
                     optional = True
                     type_opt = type_opt.split(",")
                     if len(type_opt) > 1:
-                        type = type_opt[0]
+                        paramtype = type_opt[0]
                     else:
-                        type = None
+                        paramtype = None
                 else:
-                    type = type_opt
+                    paramtype = type_opt
 
                 param = {
                     "name": name,
                     "description": description,
                     "optional": optional,
                 }
-                if type:
-                    param["type"] = string_to_type(type)
-                del type
+                if paramtype:
+                    param["type"] = string_to_type(paramtype)
+                del paramtype
                 result["input_params"].append(param)
                 last_param = param
             elif section == "Returns":
@@ -416,7 +418,11 @@ def parse_google_docstring(docstring: str) -> DocstringParserResult:
                     result["output_params"].append(return_param)
                     last_param = return_param
                 elif last_param:
-                    last_param["description"] += " " + line
+                    last_param["description"] = (
+                        last_param["description"] + " " + line
+                        if "description" in last_param
+                        else line
+                    )
             elif section == "Raises":
                 raise_match = re.match(r"(\w+):(.+)", line + " ")
                 if raise_match:

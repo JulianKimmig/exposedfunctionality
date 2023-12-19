@@ -8,8 +8,6 @@ nonetype = object()
 
 OnChangeEvent = Callable[[Any, Any], None]
 
-ValueChecker = Callable[[Any, "ExposedValueData"], Any]
-
 
 class ExposedValueData:
     def __init__(self, **kwargs) -> None:
@@ -41,7 +39,7 @@ class ExposedValueData:
             try:
                 return self._data[__name]
             except KeyError:
-                raise exc
+                raise exc  # pylint: disable=raise-missing-from
 
     def call_on_change_callbacks(
         self,
@@ -57,6 +55,9 @@ class ExposedValueData:
                 callback(new_value, old_value)
 
         return tasks
+
+
+ValueChecker = Callable[[Any, ExposedValueData], Any]
 
 
 class ExposedValue:
@@ -89,7 +90,8 @@ class ExposedValue:
         Args:
             name (str): Name of the attribute.
             default (Any): Default value for the attribute.
-            type_ (Optional[Type], optional): Expected type of the attribute. If not provided, the type of the default value is used. If None is provided, no type checking is performed.
+            type_ (Optional[Type], optional): Expected type of the attribute.
+            If not provided, the type of the default value is used. If None is provided, no type checking is performed.
             **kwargs: Additional keyword arguments, must be json serializable.
         """
         self.name = name
@@ -106,7 +108,8 @@ class ExposedValue:
                 try:
                     if not default == type(default)(self.type(default)):
                         raise TypeError(
-                            f"Can convert default value of type {type(default)} to {self.type}, and back again, but not without loss of information."
+                            f"Can convert default value of type {type(default)} to {self.type}, and back again, "
+                            "but not without loss of information."
                         )
                     default = self.type(default)
                 except Exception as exc:
@@ -219,7 +222,8 @@ def add_exposed_value(
 ) -> None:
     """
     Dynamically add an ExposedValue to an instance or class.
-    Keep in mind that this will create a new class for the instance, so it is not possible to add ExposedValues to instances of built-in classes.
+    Keep in mind that this will create a new class for the instance, so it is
+    not possible to add ExposedValues to instances of built-in classes.
     If the instance is used to create other instances, the ExposedValues will be inherited.
     e.g.:
     >>> class A:

@@ -8,13 +8,14 @@ from typing import (
     Type,
     Tuple,
     Set,
-    get_type_hints,
     Optional,
     Callable,
     Dict,
     Any,
     List,
     Literal,
+    Protocol,
+    TypeVar,
 )
 
 if sys.version_info >= (3, 8):
@@ -34,7 +35,7 @@ except ImportError:
     Required = Union
 
 try:
-    from typing import NoneType
+    from typing import NoneType  # type: ignore # pylint: disable=unused-import
 except ImportError:
     NoneType = type(None)
 
@@ -104,19 +105,49 @@ if USE_TYPED_DICT:
 else:
 
     class Endpoint(dict):
-        pass
+        """Type definition for an endpoint"""
 
     class FunctionInputParam(dict):
-        pass
+        """Type definition for a function parameter
+
+        Parameters:
+        - name: The name of the parameter
+        - default: The default value of the parameter
+        - type: The type of the parameter
+        - positional: Whether the parameter is positional
+        - optional: Whether the parameter is optional
+        - description: The description of the parameter
+        - middleware: A list of functions that can be used to transform the parameter value
+        - endpoints:  A dictionary of endpoints that can be used to represent the parameter value in different contexts
+        """
 
     class FunctionOutputParam(dict):
-        pass
+        """Type definition for an output parameter
+
+        Parameters:
+        - name: The name of the parameter
+        - type: The type of the parameter
+        - description: The description of the parameter
+        - endpoints:  A dictionary of endpoints that can be used to represent the parameter value in different contexts
+        """
 
     class SerializedFunction(dict):
-        pass
+        """Type definition for a serialized function"""
 
     class DocstringParserResult(dict):
-        pass
+        """Type definition for a standardized parsed docstring"""
+
+
+ReturnType = TypeVar("ReturnType")
+
+
+class ExposedFunction(Protocol[ReturnType]):
+    ef_funcmeta: SerializedFunction
+    _is_exposed_method: bool
+
+    # Define the __call__ method to make this protocol a callable
+    def __call__(self, *args: Any, **kwargs: Any) -> ReturnType:
+        ...
 
 
 class FunctionParamError(Exception):
@@ -152,7 +183,6 @@ ALLOWED_BUILTINS = {
     "range": range,
     "slice": slice,
     "type": type,
-    "None": None,
     "Any": Any,
     "Optional": Optional,
     "Union": Union,
@@ -219,16 +249,21 @@ def string_to_type(string: str):
 
     # Helper function to handle parameterized types
 
-    def handle_param_type(main_type, content):
+    def handle_param_type(main_type: str, content: str):
         if main_type == "List":
             return List[string_to_type(content)]
         elif main_type == "Dict":
             key, value = map(str.strip, content.split(","))
             return Dict[string_to_type(key), string_to_type(value)]
         elif main_type == "Tuple":
-            return Tuple[tuple(map(string_to_type, content.split(",")))]
+            items = tuple(map(string_to_type, content.split(",")))
+            return Tuple[*items]
         elif main_type == "Union":
-            return Union[tuple(map(string_to_type, content.split(",")))]
+            subtypes = tuple(map(string_to_type, content.split(",")))
+            if len(subtypes) >= 2:
+                return Union[*subtypes]  # type: ignore # mypy doesn't like the splat operator
+            else:
+                return subtypes[0]
         elif main_type == "Optional":
             return Optional[string_to_type(content)]
         elif main_type == "Type":
@@ -236,9 +271,10 @@ def string_to_type(string: str):
         elif main_type == "Set":
             return Set[string_to_type(content)]
         elif main_type == "Literal":
-            return Literal[
-                tuple([ast.literal_eval(item.strip()) for item in content.split(",")])
-            ]
+            items = [item.strip() for item in content.split(",")]
+            items = [item for item in items if item]
+            items = tuple([ast.literal_eval(item.strip()) for item in items])
+            return Literal[*items]  # type: ignore # mypy doesn't like the splat operator
         else:
             raise TypeNotFoundError(string)
 

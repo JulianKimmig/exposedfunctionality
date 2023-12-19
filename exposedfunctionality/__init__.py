@@ -7,6 +7,7 @@ from .func import (
     assure_exposed_method,
     FunctionInputParam,
     FunctionOutputParam,
+    is_exposed_method,
 )
 
 __all__ = [
@@ -21,6 +22,7 @@ __all__ = [
     "assure_exposed_method",
     "FunctionInputParam",
     "FunctionOutputParam",
+    "is_exposed_method",
 ]
 
 __version__ = "0.1.6"
