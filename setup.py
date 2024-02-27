@@ -14,7 +14,7 @@ setup(
     author="Julian Kimmig",
     author_email="julian.kimmig@linkdlab.de",
     packages=find_packages(),  # Update with your package name
-    install_requires=["pyyaml"],
+    install_requires=["pyyaml", "typing-extensions"],
     # github
     url="https://github.com/JulianKimmig/ExposedFunctionality",
     # license
