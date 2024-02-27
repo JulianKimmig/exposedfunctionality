@@ -21,6 +21,7 @@ from .function_parser.types import (
     ReturnType,
     Union,
     TypedDict,
+    Literal,
 )
 
 try:
@@ -33,6 +34,14 @@ class ExposedMethodKwargs(TypedDict, total=False):
     name: Optional[str] = (None,)
     inputs: Optional[List[FunctionInputParam]] = (None,)
     outputs: Optional[List[FunctionOutputParam]] = (None,)
+
+
+ExposedMethodKwargsKeysValues = Literal["name", "inputs", "outputs"]
+ExposedMethodKwargsKeys: List[ExposedMethodKwargsKeysValues] = [
+    "name",
+    "inputs",
+    "outputs",
+]
 
 
 def expose_method(
