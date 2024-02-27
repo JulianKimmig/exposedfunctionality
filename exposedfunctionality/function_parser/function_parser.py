@@ -20,6 +20,7 @@ from .types import (
     Tuple,
     NoneType,
     ReturnType,
+    Dict,
 )
 
 
@@ -54,7 +55,7 @@ def get_resolved_signature(
     """
     base_func = func
     preset_args = []
-    preset_kwargs = {}
+    preset_kwargs: Dict[str, Any] = {}
 
     if class_member_attributes is None:
         class_member_attributes = ["self", "cls"]

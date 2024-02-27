@@ -2,6 +2,7 @@
 This module contains the exposed_method decorator and related functions
 for exposing methods to the frontend.
 """
+
 from __future__ import annotations
 from .function_parser import (
     function_method_parser,
@@ -19,7 +20,19 @@ from .function_parser.types import (
     ExposedFunction,
     ReturnType,
     Union,
+    TypedDict,
 )
+
+try:
+    from typing import Unpack
+except ImportError:
+    from typing_extensions import Unpack
+
+
+class ExposedMethodKwargs(TypedDict, total=False):
+    name: Optional[str] = (None,)
+    inputs: Optional[List[FunctionInputParam]] = (None,)
+    outputs: Optional[List[FunctionOutputParam]] = (None,)
 
 
 def expose_method(
@@ -127,7 +140,8 @@ def is_exposed_method(
 
 
 def assure_exposed_method(
-    obj: Union[Callable[..., ReturnType], ExposedFunction[ReturnType]], **kwargs
+    obj: Union[Callable[..., ReturnType], ExposedFunction[ReturnType]],
+    **kwargs: Unpack[ExposedMethodKwargs],
 ) -> ExposedFunction[ReturnType]:
     """
     Assure that a method is exposed. If it is already exposed, it is returned as is.
