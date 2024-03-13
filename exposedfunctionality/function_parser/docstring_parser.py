@@ -477,13 +477,17 @@ def parse_numpy_docstring(docstring: str) -> DocstringParserResult:
         params = []
         current_param = None
         for line in sections["Parameters"].split("\n"):
-            param_match = re.match(r"\s*(\w+)\s*:\s*(.+)", line)
-            if param_match:
+            param_match = re.match(r"\s*([\w,\s]+)\s*:\s*(.+)", line)
+            if param_match and param_match.group(1).strip():
                 if current_param:
                     # Add the current parameter to the list
-                    params.append(current_param)
+                    if len(current_param["name"].split(",")) > 1:
+                        for n in current_param["name"].split(","):
+                            params.append({**current_param, "name": n.strip()})
+                    else:
+                        params.append(current_param)
                 current_param = FunctionInputParam(
-                    name=param_match.group(1),
+                    name=param_match.group(1).strip(),
                     type=param_match.group(2),
                     description="",
                     optional="optional" in param_match.group(2),
@@ -493,7 +497,11 @@ def parse_numpy_docstring(docstring: str) -> DocstringParserResult:
                 current_param["description"] += line.strip() + " "
         if current_param:
             # Add the current parameter to the list
-            params.append(current_param)
+            if len(current_param["name"].split(",")) > 1:
+                for n in current_param["name"].split(","):
+                    params.append({**current_param, "name": n.strip()})
+            else:
+                params.append(current_param)
         sections["Parameters"] = params
         res["input_params"] = sections["Parameters"]
 
@@ -502,13 +510,17 @@ def parse_numpy_docstring(docstring: str) -> DocstringParserResult:
         params = []
         current_param = None
         for line in sections["Returns"].split("\n"):
-            param_match = re.match(r"(\w+)\s*:\s*(.+)", line)
-            if param_match:
+            param_match = re.match(r"\s*([\w,\s]+)\s*:\s*(.+)", line)
+            if param_match and param_match.group(1).strip():
                 if current_param:
                     # Add the current parameter to the list
-                    params.append(current_param)
+                    if len(current_param["name"].split(",")) > 1:
+                        for n in current_param["name"].split(","):
+                            params.append({**current_param, "name": n.strip()})
+                    else:
+                        params.append(current_param)
                 current_param = FunctionOutputParam(
-                    name=param_match.group(1),
+                    name=param_match.group(1).strip(),
                     type=param_match.group(2),
                     description="",
                 )
@@ -517,7 +529,11 @@ def parse_numpy_docstring(docstring: str) -> DocstringParserResult:
                 current_param["description"] += line.strip() + " "
         if current_param:
             # Add the current parameter to the list
-            params.append(current_param)
+            if len(current_param["name"].split(",")) > 1:
+                for n in current_param["name"].split(","):
+                    params.append({**current_param, "name": n.strip()})
+            else:
+                params.append(current_param)
         sections["Returns"] = params
 
         res["output_params"] = sections["Returns"]

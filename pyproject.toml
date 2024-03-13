@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "exposedfunctionality"
-version = "0.2.2"
+version = "0.2.3"
 description = "tool to expose functionalities to multiple tools"
 authors = ["Julian Kimmig <julian.kimmig@linkdlab.de>"]
 license = "MIT"

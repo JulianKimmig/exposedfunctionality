@@ -34,6 +34,7 @@ class TestExposedMethodDecorator(unittest.TestCase):
                 1,
                 ["angle"],
             ),
+            (np.add, "Add arguments element-wise.", 4, ["x1", "x2"], 1, ["add"]),
         ]:
             self.assertTrue(f.__doc__ is not None)
             prser = select_extraction_function(f.__doc__)
@@ -47,7 +48,7 @@ class TestExposedMethodDecorator(unittest.TestCase):
             )
             self.assertEqual(parseddocs["original"], f.__doc__)
             inputs = parseddocs["input_params"]
-            self.assertEqual(len(inputs), ipsum)
+            self.assertEqual(len(inputs), ipsum, inputs)
             for i, n in enumerate(ipnamecheck):
                 self.assertEqual(inputs[i]["name"], n)
             self.assertEqual(len(parseddocs["output_params"]), opsum)
