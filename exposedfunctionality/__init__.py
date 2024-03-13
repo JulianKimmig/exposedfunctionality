@@ -27,4 +27,4 @@ __all__ = [
     "expose_method",
 ]
 
-__version__ = "0.1.10"
+__version__ = "0.2"
