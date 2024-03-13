@@ -168,6 +168,11 @@ def function_method_parser(
     """
     input_params = []
     base_func, preset_args, preset_kwargs = get_base_function(func)
+    docs = inspect.getdoc(base_func)
+    parsed_ds: Optional[DocstringParserResult] = None
+    if docs is not None:
+        parsed_ds = parse_docstring(docs)
+
     try:
         th = get_type_hints(base_func)
     except TypeError as exe:
@@ -206,7 +211,9 @@ def function_method_parser(
 
             input_params.append(param_dict)
     except ValueError as exe:
-        base_func = func
+        if parsed_ds is not None:
+            input_params = parsed_ds["input_params"]
+
     output_params = []
     if "return" in th:
         # chek if return type is None Type
@@ -221,10 +228,8 @@ def function_method_parser(
         else:
             output_params = [{"name": "out", "type": type_to_string(th["return"])}]
 
-    docs = inspect.getdoc(base_func)
-    parsed_ds: Optional[DocstringParserResult] = None
-    if docs is not None:
-        parsed_ds = parse_docstring(docs)
+
+    if parsed_ds is not None:
         # update input params
         for p in input_params:
             for parsed_ip in parsed_ds["input_params"]:

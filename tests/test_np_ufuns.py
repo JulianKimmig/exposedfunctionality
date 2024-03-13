@@ -48,7 +48,7 @@ class TestExposedMethodDecorator(unittest.TestCase):
         func = assure_exposed_method(f)
         self.assertTrue(is_exposed_method(func))
         self.assertTrue(func.ef_funcmeta["docstring"] is not None)
-        print(func.ef_funcmeta["docstring"])
+
 
     def test_arange(self):
         """Test that exposed_method adds the necessary metadata to a function."""
