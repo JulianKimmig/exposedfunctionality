@@ -2,6 +2,8 @@ from __future__ import annotations
 import re
 import warnings
 from .types import (
+    FunctionInputParam,
+    FunctionOutputParam,
     string_to_type,
     type_to_string,
     DocstringParserResult,
@@ -437,6 +439,101 @@ def parse_google_docstring(docstring: str) -> DocstringParserResult:
     return _unify_parser_results(result, docstring)
 
 
+def parse_numpy_docstring(docstring: str) -> DocstringParserResult:
+    sections = {}
+    res = DocstringParserResult(
+        summary="",
+    )
+    # Regular expressions to identify sections
+    section_regex = re.compile(r"^\n\s*([^\n]*)\s*\n\s*[-]+\s*\n", re.MULTILINE)
+
+    # Find all section starts
+    section_starts = [
+        (match.start(), match.group(1)) for match in section_regex.finditer(docstring)
+    ]
+    if len(section_starts) > 0:
+        first_section_start = min(section_starts, key=lambda x: x[0])
+        res["summary"] = docstring[: first_section_start[0]].strip()
+
+    # Add end of string as the final section start
+    section_starts.append((len(docstring), None))
+
+    # Extract sections
+    for i in range(len(section_starts) - 1):
+        start, section_name = section_starts[i]
+        end, _ = section_starts[i + 1]
+        section_content = docstring[start:end].strip()
+
+        # Remove the section header
+        if section_name:
+            header_end = section_content.find("\n")
+            section_content = section_content[header_end:].strip()
+
+        sections[section_name] = section_content.strip().strip("-").strip()
+
+    # Process Parameters section
+    if sections["Parameters"]:
+
+        params = []
+        current_param = None
+        for line in sections["Parameters"].split("\n"):
+            param_match = re.match(r"\s*(\w+)\s*:\s*(.+)", line)
+            if param_match:
+                if current_param:
+                    # Add the current parameter to the list
+                    params.append(current_param)
+                current_param = FunctionInputParam(
+                    name=param_match.group(1),
+                    type=param_match.group(2),
+                    description="",
+                    optional="optional" in param_match.group(2),
+                )
+            elif current_param:
+                # Continuation of a parameter description
+                current_param["description"] += line.strip() + " "
+        if current_param:
+            # Add the current parameter to the list
+            params.append(current_param)
+        sections["Parameters"] = params
+        res["input_params"] = sections["Parameters"]
+
+    # Process Returns section
+    if sections["Returns"]:
+        params = []
+        current_param = None
+        for line in sections["Returns"].split("\n"):
+            param_match = re.match(r"(\w+)\s*:\s*(.+)", line)
+            if param_match:
+                if current_param:
+                    # Add the current parameter to the list
+                    params.append(current_param)
+                current_param = FunctionOutputParam(
+                    name=param_match.group(1),
+                    type=param_match.group(2),
+                    description="",
+                )
+            elif current_param:
+                # Continuation of a parameter description
+                current_param["description"] += line.strip() + " "
+        if current_param:
+            # Add the current parameter to the list
+            params.append(current_param)
+        sections["Returns"] = params
+
+        res["output_params"] = sections["Returns"]
+
+    for k, v in sections.items():
+        if k not in [
+            "Parameters",
+            "Returns",
+        ]:
+            res["summary"] += f"\n\n{k}\n----------\n{v}"
+
+    # Examples section is kept as is, or you could split it into individual examples
+
+    return _unify_parser_results(res, docstring=docstring)
+
+
 def select_extraction_function(docstring: str) -> Callable:
     """
     Determines the appropriate extraction function for a given docstring.
@@ -448,13 +545,7 @@ def select_extraction_function(docstring: str) -> Callable:
         Callable: The selected extraction function.
     """
     # Check for reStructuredText indicators
-    if ":param" in docstring:
-        return parse_restructured_docstring
-
-    if ":raises" in docstring:
-        return parse_restructured_docstring
-
-    if ":return" in docstring:
+    if ":param" in docstring or ":raises" in docstring or ":return" in docstring:
         return parse_restructured_docstring
 
     # Check for Google style indicators
@@ -468,6 +559,19 @@ def select_extraction_function(docstring: str) -> Callable:
         return parse_google_docstring
     if re.search(param_pattern_google_no_types, docstring, re.MULTILINE):
         return parse_google_docstring
+
+    # Check for NumPy style indicators
+    # NumPy docstrings have sections like Parameters, Returns, and Examples followed by a newline and dashes
+    numpy_section_patterns = [
+        r"^\s*Parameters\s*\n\s*[-]+\s*\n",
+        r"^\s*Returns\s*\n\s*[-]+\s*\n",
+        r"^\s*Examples\s*\n\s*[-]+\s*\n",
+    ]
+    if any(
+        re.search(pattern, docstring, re.MULTILINE)
+        for pattern in numpy_section_patterns
+    ):
+        return parse_numpy_docstring
 
     # If none match, return None or you could return a default function
     return None

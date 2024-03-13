@@ -4,6 +4,7 @@ for exposing methods to the frontend.
 """
 
 from __future__ import annotations
+from functools import wraps
 from .function_parser import (
     function_method_parser,
     SerializedFunction,
@@ -81,6 +82,19 @@ def expose_method(
     if name is not None:
         serfunc["name"] = name
     func: ExposedFunction[ReturnType] = func
+    try:
+        setattr(func, "_is_exposed_method", True)
+    except AttributeError:
+        # some objects are read-only, so we can't set the attribute
+        # as a workaround, we wrap the function in a new function
+        of = func
+
+        @wraps(of)
+        def new_func(*args, **kwargs):
+            return of(*args, **kwargs)
+
+        func = new_func
+
     func._is_exposed_method = True  # pylint: disable=W0212
     func.ef_funcmeta: SerializedFunction = serfunc
     return func

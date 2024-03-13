@@ -24,6 +24,39 @@ from .types import (
 )
 
 
+def get_base_function(func: Callable) -> Callable:
+    """
+    Get the base function of a callable. If the callable is a functools.partial
+    instance, it returns the base function.
+
+    Parameters:
+    - func: A callable whose base function needs to be obtained.
+
+    Returns:
+    - Callable: The base function of the callable.
+
+    Examples:
+    ```python
+    from functools import partial
+
+    def example(a, b, c=3, d=4):
+        pass
+
+    p = partial(example, 1, d=5)
+    print(get_base_function(p))  # Returns: example
+    ```
+    """
+    base_func = func
+    preset_args = []
+    preset_kwargs: Dict[str, Any] = {}
+    if isinstance(base_func, partial):
+        while isinstance(base_func, partial):
+            preset_kwargs = {**base_func.keywords, **preset_kwargs}
+            preset_args = list(base_func.args) + preset_args
+            base_func = base_func.func
+    return base_func, preset_args, preset_kwargs
+
+
 def get_resolved_signature(
     func: Callable[..., ReturnType], class_member_attributes: Optional[List[str]] = None
 ) -> Tuple[inspect.Signature, Callable[..., ReturnType]]:
@@ -53,20 +86,12 @@ def get_resolved_signature(
     ```
 
     """
-    base_func = func
-    preset_args = []
-    preset_kwargs: Dict[str, Any] = {}
-
+    base_func, preset_args, preset_kwargs = get_base_function(func)
     if class_member_attributes is None:
         class_member_attributes = ["self", "cls"]
 
     # Resolve the base function and collect preset arguments
     # from any nested partials.
-    if isinstance(base_func, partial):
-        while isinstance(base_func, partial):
-            preset_kwargs = {**base_func.keywords, **preset_kwargs}
-            preset_args = list(base_func.args) + preset_args
-            base_func = base_func.func
 
     # Obtain the original signature
     sig = inspect.signature(base_func)
@@ -142,40 +167,46 @@ def function_method_parser(
     ```
     """
     input_params = []
+    base_func, preset_args, preset_kwargs = get_base_function(func)
+    try:
+        th = get_type_hints(base_func)
+    except TypeError as exe:
+        th = {}
+    try:
+        sig, base_func = get_resolved_signature(func)
 
-    sig, base_func = get_resolved_signature(func)
-    th = get_type_hints(base_func)
-    for i, p in sig.parameters.items():
-        param_dict: FunctionInputParam = {
-            "name": i,
-            "default": p.default,
-            "type": th[i] if i in th else p.empty,
-            "positional": (
-                p.kind == p.POSITIONAL_ONLY or p.kind == p.POSITIONAL_OR_KEYWORD
-            )
-            and (p.default == p.empty),
-        }
+        for i, p in sig.parameters.items():
+            param_dict: FunctionInputParam = {
+                "name": i,
+                "default": p.default,
+                "type": th[i] if i in th else p.empty,
+                "positional": (
+                    p.kind == p.POSITIONAL_ONLY or p.kind == p.POSITIONAL_OR_KEYWORD
+                )
+                and (p.default == p.empty),
+            }
 
-        if param_dict["type"] is p.empty:
-            warnings.warn(
-                f"input {i} has no type type, using Any as type",
-            )
-            param_dict["type"] = Any
+            if param_dict["type"] is p.empty:
+                warnings.warn(
+                    f"input {i} has no type type, using Any as type",
+                )
+                param_dict["type"] = Any
 
-        if param_dict["default"] is not p.empty:
-            try:
-                json.dumps(param_dict["default"])
-            except TypeError as exe:
-                raise FunctionParamError(
-                    f"input {i} has unserializable default value '{param_dict['default']}'"
-                ) from exe
-        else:
-            del param_dict["default"]
+            if param_dict["default"] is not p.empty:
+                try:
+                    json.dumps(param_dict["default"])
+                except TypeError as exe:
+                    raise FunctionParamError(
+                        f"input {i} has unserializable default value '{param_dict['default']}'"
+                    ) from exe
+            else:
+                del param_dict["default"]
 
-        param_dict["type"] = type_to_string(param_dict["type"])
+            param_dict["type"] = type_to_string(param_dict["type"])
 
-        input_params.append(param_dict)
-
+            input_params.append(param_dict)
+    except ValueError as exe:
+        base_func = func
     output_params = []
     if "return" in th:
         # chek if return type is None Type
