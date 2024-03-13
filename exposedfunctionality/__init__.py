@@ -11,6 +11,9 @@ from .func import (
     expose_method,
 )
 
+
+__version__ = "0.2.2"
+
 __all__ = [
     "function_parser",
     "ExposedValue",
@@ -26,5 +29,3 @@ __all__ = [
     "is_exposed_method",
     "expose_method",
 ]
-
-__version__ = "0.2.1"
