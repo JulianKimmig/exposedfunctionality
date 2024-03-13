@@ -476,9 +476,16 @@ def parse_numpy_docstring(docstring: str) -> DocstringParserResult:
 
         params = []
         current_param = None
+        current_param_intendation = 0
+        current_intendation = 0
         for line in sections["Parameters"].split("\n"):
             param_match = re.match(r"\s*([\w,\s]+)\s*:\s*(.+)", line)
-            if param_match and param_match.group(1).strip():
+            if (
+                param_match
+                and param_match.group(1).strip()
+                and " " not in param_match.group(1).replace(", ", ",").strip()
+                and (len(line) - len(line.lstrip()) <= current_intendation)
+            ):
                 if current_param:
                     # Add the current parameter to the list
                     if len(current_param["name"].split(",")) > 1:
@@ -492,9 +499,12 @@ def parse_numpy_docstring(docstring: str) -> DocstringParserResult:
                     description="",
                     optional="optional" in param_match.group(2),
                 )
+                current_param_intendation = len(line) - len(line.lstrip())
+                current_intendation = current_param_intendation
             elif current_param:
                 # Continuation of a parameter description
                 current_param["description"] += line.strip() + " "
+                current_intendation = len(line) - len(line.lstrip())
         if current_param:
             # Add the current parameter to the list
             if len(current_param["name"].split(",")) > 1:
@@ -511,7 +521,12 @@ def parse_numpy_docstring(docstring: str) -> DocstringParserResult:
         current_param = None
         for line in sections["Returns"].split("\n"):
             param_match = re.match(r"\s*([\w,\s]+)\s*:\s*(.+)", line)
-            if param_match and param_match.group(1).strip():
+            if (
+                param_match
+                and param_match.group(1).strip()
+                and " " not in param_match.group(1).replace(", ", ",").strip()
+                and (len(line) - len(line.lstrip()) <= current_intendation)
+            ):
                 if current_param:
                     # Add the current parameter to the list
                     if len(current_param["name"].split(",")) > 1:
@@ -524,9 +539,12 @@ def parse_numpy_docstring(docstring: str) -> DocstringParserResult:
                     type=param_match.group(2),
                     description="",
                 )
+                current_param_intendation = len(line) - len(line.lstrip())
+                current_intendation = current_param_intendation
             elif current_param:
                 # Continuation of a parameter description
                 current_param["description"] += line.strip() + " "
+                current_intendation = len(line) - len(line.lstrip())
         if current_param:
             # Add the current parameter to the list
             if len(current_param["name"].split(",")) > 1:
