@@ -548,18 +548,6 @@ def select_extraction_function(docstring: str) -> Callable:
     if ":param" in docstring or ":raises" in docstring or ":return" in docstring:
         return parse_restructured_docstring
 
-    # Check for Google style indicators
-    # (Note: Google style is more general and may overlap with other styles,
-    # so we check it last)
-    param_pattern_google_with_types = (
-        r"^\s*([a-zA-Z_]\w*)\s?\(.*\):"  # match "param_name (param_type):"
-    )
-    param_pattern_google_no_types = r"^\s*([a-zA-Z_]\w*):"  # match "param_name:"
-    if re.search(param_pattern_google_with_types, docstring, re.MULTILINE):
-        return parse_google_docstring
-    if re.search(param_pattern_google_no_types, docstring, re.MULTILINE):
-        return parse_google_docstring
-
     # Check for NumPy style indicators
     # NumPy docstrings have sections like Parameters, Returns, and Examples followed by a newline and dashes
     numpy_section_patterns = [
@@ -572,6 +560,18 @@ def select_extraction_function(docstring: str) -> Callable:
         for pattern in numpy_section_patterns
     ):
         return parse_numpy_docstring
+
+    # Check for Google style indicators
+    # (Note: Google style is more general and may overlap with other styles,
+    # so we check it last)
+    param_pattern_google_with_types = (
+        r"^\s*([a-zA-Z_]\w*)\s?\(.*\):"  # match "param_name (param_type):"
+    )
+    param_pattern_google_no_types = r"^\s*([a-zA-Z_]\w*):"  # match "param_name:"
+    if re.search(param_pattern_google_with_types, docstring, re.MULTILINE):
+        return parse_google_docstring
+    if re.search(param_pattern_google_no_types, docstring, re.MULTILINE):
+        return parse_google_docstring
 
     # If none match, return None or you could return a default function
     return None

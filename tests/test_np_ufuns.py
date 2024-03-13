@@ -17,30 +17,42 @@ from pprint import pprint
 class TestExposedMethodDecorator(unittest.TestCase):
     def test_ufuncs_docstring(self):
         """Test that exposed_method adds the necessary metadata to a function."""
-        f, summarycheck, ipsum, ipnamecheck, opsum, opnamecheck = (
-            np.sin,
-            "Trigonometric sine, element-wise.",
-            3,
-            ["x"],
-            1,
-            ["y"],
-        )
-        self.assertTrue(f.__doc__ is not None)
-        prser = select_extraction_function(f.__doc__)
-        self.assertTrue(prser is parse_numpy_docstring)
-        parseddocs = parse_numpy_docstring(f.__doc__)
-        self.assertTrue(
-            summarycheck in parseddocs["summary"],
-            parseddocs["summary"],
-        )
-        self.assertEqual(parseddocs["original"], f.__doc__)
-        inputs = parseddocs["input_params"]
-        self.assertEqual(len(inputs), ipsum)
-        for i, n in enumerate(ipnamecheck):
-            self.assertEqual(inputs[i]["name"], n)
-        self.assertEqual(len(parseddocs["output_params"]), opsum)
-        for i, n in enumerate(opnamecheck):
-            self.assertEqual(parseddocs["output_params"][i]["name"], n)
+        for f, summarycheck, ipsum, ipnamecheck, opsum, opnamecheck in [
+            (
+                np.sin,
+                "Trigonometric sine, element-wise.",
+                3,
+                ["x"],
+                1,
+                ["y"],
+            ),
+            (
+                np.arccos,
+                "Trigonometric inverse cosine, element-wise.",
+                3,
+                ["x"],
+                1,
+                ["angle"],
+            ),
+        ]:
+            self.assertTrue(f.__doc__ is not None)
+            prser = select_extraction_function(f.__doc__)
+            self.assertTrue(
+                prser is parse_numpy_docstring, str(prser) + "\n\n" + f.__doc__
+            )
+            parseddocs = parse_numpy_docstring(f.__doc__)
+            self.assertTrue(
+                summarycheck in parseddocs["summary"],
+                parseddocs["summary"],
+            )
+            self.assertEqual(parseddocs["original"], f.__doc__)
+            inputs = parseddocs["input_params"]
+            self.assertEqual(len(inputs), ipsum)
+            for i, n in enumerate(ipnamecheck):
+                self.assertEqual(inputs[i]["name"], n)
+            self.assertEqual(len(parseddocs["output_params"]), opsum)
+            for i, n in enumerate(opnamecheck):
+                self.assertEqual(parseddocs["output_params"][i]["name"], n)
 
     def test_ufunfs(self):
         """Test that exposed_method adds the necessary metadata to a function."""
@@ -48,7 +60,6 @@ class TestExposedMethodDecorator(unittest.TestCase):
         func = assure_exposed_method(f)
         self.assertTrue(is_exposed_method(func))
         self.assertTrue(func.ef_funcmeta["docstring"] is not None)
-
 
     def test_arange(self):
         """Test that exposed_method adds the necessary metadata to a function."""
