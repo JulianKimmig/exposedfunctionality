@@ -55,8 +55,10 @@ def _unify_parser_results(
             if param["default"].startswith(("`", "'", '"')):
                 param["default"] = param["default"][1:-1]
         if "default" in param and "type" in param:
-            param["default"] = string_to_type(param["type"])(param["default"])
-
+            try:
+                param["default"] = string_to_type(param["type"])(param["default"])
+            except:
+                pass
         if "type" in param:
             param["type"] = type_to_string(param["type"])
 
@@ -472,14 +474,14 @@ def parse_numpy_docstring(docstring: str) -> DocstringParserResult:
         sections[section_name] = section_content.strip().strip("-").strip()
 
     # Process Parameters section
-    if sections["Parameters"]:
+    if "Parameters" in sections:
 
         params = []
         current_param = None
         current_param_intendation = 0
         current_intendation = 0
         for line in sections["Parameters"].split("\n"):
-            param_match = re.match(r"\s*([\w,\s]+)\s*:\s*(.+)", line)
+            param_match = re.match(r"\s*([\w,\s\*\`\"\']+)\s*:\s*(.+)", line)
             if (
                 param_match
                 and param_match.group(1).strip()
@@ -494,7 +496,11 @@ def parse_numpy_docstring(docstring: str) -> DocstringParserResult:
                     else:
                         params.append(current_param)
                 current_param = FunctionInputParam(
-                    name=param_match.group(1).strip(),
+                    name=param_match.group(1)
+                    .replace("`", "")
+                    .replace("'", "'")
+                    .replace('"', "")
+                    .strip(),
                     type=param_match.group(2),
                     description="",
                     optional="optional" in param_match.group(2),
@@ -516,7 +522,7 @@ def parse_numpy_docstring(docstring: str) -> DocstringParserResult:
         res["input_params"] = sections["Parameters"]
 
     # Process Returns section
-    if sections["Returns"]:
+    if "Returns" in sections:
         params = []
         current_param = None
         for line in sections["Returns"].split("\n"):
