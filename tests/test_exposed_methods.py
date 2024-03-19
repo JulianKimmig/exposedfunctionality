@@ -104,6 +104,44 @@ class TestAssureExposedMethod(unittest.TestCase):
         # Should remain with the original name since it's already exposed
         self.assertEqual(exposed_func.ef_funcmeta["name"], "original_name")
 
+    def test_exposed_methodclass(self):
+        from exposedfunctionality import exposed_method, get_exposed_methods
+
+        class MathOperations:
+            @exposed_method(
+                name="add",
+                inputs=[{"name": "a", "type": "int"}, {"name": "b", "type": "int"}],
+                outputs=[{"name": "sum", "type": "int"}],
+            )
+            def add_numbers(self, a, b):
+                """Add two numbers."""
+                return a + b
+
+        math_operations = MathOperations()
+        exposed_methods = get_exposed_methods(math_operations)
+
+        self.assertEqual(len(exposed_methods), 1)
+        self.assertIn("add_numbers", exposed_methods)
+        self.assertTrue(
+            exposed_methods["add_numbers"][1],
+            {
+                "name": "add",
+                "input_params": [
+                    {"name": "a", "type": "int", "positional": True},
+                    {"name": "b", "type": "int", "positional": True},
+                ],
+                "outputs": [{"name": "sum", "type": "int"}],
+                "docstring": {
+                    "summary": "Add two numbers.",
+                    "original": "Add two numbers.",
+                    "input_params": [],
+                    "output_params": [],
+                    "exceptions": {},
+                },
+            },
+        )
+        print(exposed_methods["add_numbers"][1])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -107,4 +107,15 @@ class TestMinMaxClamp(unittest.TestCase):
         clamped_value = min_max_clamp(value, data, min=10, max=15)
         self.assertEqual(clamped_value, 15)
 
-    # ... you can add more test cases as needed.
+    def test_clamp_as_valuechecker(self):
+        from exposedfunctionality.variables.middleware import (
+            min_max_clamp,
+        )
+        from exposedfunctionality import ExposedValue
+
+        class A:
+            data = ExposedValue("data", min=5, max=20, valuechecker=[min_max_clamp])
+
+        a = A()
+        a.data = 25
+        self.assertEqual(a.data, 20)

@@ -149,7 +149,8 @@ class ExposedFunction(Protocol[ReturnType]):
     _is_exposed_method: bool
 
     # Define the __call__ method to make this protocol a callable
-    def __call__(self, *args: Any, **kwargs: Any) -> ReturnType: ...
+    def __call__(self, *args: Any, **kwargs: Any) -> ReturnType:
+        ...
 
 
 class FunctionParamError(Exception):
@@ -218,7 +219,6 @@ def add_type(type_: type, name: str):
 
     _TYPE_GETTER[name] = type_
     if type_ not in _STRING_GETTER:
-
         _STRING_GETTER[type_] = name
 
 
