@@ -13,7 +13,9 @@ from . import function_parser
 from .variables import ExposedValue, add_exposed_value, get_exposed_values
 from . import func
 
-__version__ = "0.3"
+from .function_parser.custom_wrapper import controlled_wrapper, update_wrapper
+
+__version__ = "0.3.2"
 
 __all__ = [
     "function_parser",
@@ -30,4 +32,6 @@ __all__ = [
     "is_exposed_method",
     "expose_method",
     "func",
+    "controlled_wrapper",
+    "update_wrapper",
 ]
