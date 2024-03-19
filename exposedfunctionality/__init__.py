@@ -13,7 +13,7 @@ from . import function_parser
 from .variables import ExposedValue, add_exposed_value, get_exposed_values
 from . import func
 
-__version__ = "0.2.4"
+__version__ = "0.3"
 
 __all__ = [
     "function_parser",
