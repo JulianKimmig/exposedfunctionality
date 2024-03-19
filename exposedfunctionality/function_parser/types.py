@@ -198,20 +198,8 @@ ALLOWED_BUILTINS = {
 }
 
 
-_TYPE_GETTER: Dict[str, type] = {**ALLOWED_BUILTINS}
+_TYPE_GETTER: Dict[str, type] = {}
 _STRING_GETTER: Dict[type, str] = {}
-for k, v in _TYPE_GETTER.items():
-    if v not in _STRING_GETTER:
-        _STRING_GETTER[v] = k
-_TYPE_GETTER.update(
-    {
-        "integer": int,
-        "floating": float,
-        "string": str,
-        "boolean": bool,
-        "number": Union[int, float],
-    }
-)
 
 
 def add_type(type_: type, name: str):
@@ -230,7 +218,21 @@ def add_type(type_: type, name: str):
 
     _TYPE_GETTER[name] = type_
     if type_ not in _STRING_GETTER:
+
         _STRING_GETTER[type_] = name
+
+
+for k, v in ALLOWED_BUILTINS.items():
+    add_type(v, k)
+
+for k, v in {
+    "integer": int,
+    "floating": float,
+    "string": str,
+    "boolean": bool,
+    "number": Union[int, float],
+}.items():
+    add_type(v, k)
 
 
 def string_to_type(string: str):

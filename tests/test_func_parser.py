@@ -89,7 +89,7 @@ class TestFunctionSerialization(unittest.TestCase):
         expected = {
             "name": "example_function",
             "input_params": [
-                {"name": "a", "type": "Union[int, float]", "positional": True},
+                {"name": "a", "type": "number", "positional": True},
                 {
                     "name": "b",
                     "type": "Union[str, None]",
@@ -177,8 +177,22 @@ class TestFunctionSerialization(unittest.TestCase):
         ):  # pylint: disable=unused-argument, dangerous-default-value
             pass
 
-        with self.assertRaises(FunctionParamError):
-            function_method_parser(unserializable_default)
+        ser = function_method_parser(unserializable_default)
+        exp = {
+            "docstring": None,
+            "input_params": [
+                {
+                    "default": "{'unserializable': set()}",
+                    "name": "a",
+                    "positional": False,
+                    "type": "Any",
+                }
+            ],
+            "name": "unserializable_default",
+            "output_params": [],
+        }
+
+        self.assertEqual(ser, exp)
 
     def test_function_method_parser_param_from_docstring(self):
         from exposedfunctionality.function_parser import function_method_parser

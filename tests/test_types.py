@@ -1,6 +1,7 @@
 """
 Test module for the types module.
 """
+
 import unittest
 from unittest.mock import patch, Mock
 from time import time
@@ -123,15 +124,19 @@ class TestStringToType(unittest.TestCase):
 
 class TestAddType(unittest.TestCase):
     def setUp(self):
-        from exposedfunctionality.function_parser.types import _TYPE_GETTER
+        from exposedfunctionality.function_parser.types import (
+            _TYPE_GETTER,
+            _STRING_GETTER,
+        )
 
         self.initial_types = _TYPE_GETTER.copy()
+        self.initial_string_types = _STRING_GETTER.copy()
 
     def tearDown(self):
         from exposedfunctionality.function_parser import types
 
         types._TYPE_GETTER = self.initial_types
-        types._STRING_GETTER = {v: k for k, v in self.initial_types.items()}
+        types._STRING_GETTER = self.initial_string_types
 
     def test_add_new_type(self):
         from exposedfunctionality.function_parser.types import add_type, _TYPE_GETTER
@@ -220,14 +225,23 @@ class TestTypeToString(unittest.TestCase):
             _ = type_to_string(UnknownType)
 
     def test_typing_types(self):
-        from exposedfunctionality.function_parser.types import type_to_string
+        from exposedfunctionality.function_parser.types import (
+            type_to_string,
+            _STRING_GETTER,
+        )
         from typing import Optional, Union, List, Dict, Tuple, Any, Type
+
+        import pprint
+
+        pprint.pprint(_STRING_GETTER)
 
         for i in range(2):
             self.assertIn(
                 type_to_string(Optional[int]), ["Union[int, None]", "Optional[int]"]
             )
-            self.assertEqual(type_to_string(Union[int, str]), "Union[int, str]")
+            self.assertEqual(
+                type_to_string(Union[int, str]), "Union[int, str]", _STRING_GETTER
+            )
             self.assertEqual(type_to_string(List[int]), "List[int]")
             self.assertEqual(type_to_string(Dict[int, str]), "Dict[int, str]")
             self.assertEqual(type_to_string(Tuple[int, str]), "Tuple[int, str]")

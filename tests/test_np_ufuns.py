@@ -7,6 +7,7 @@ from exposedfunctionality import (
 )
 import numpy as np
 
+np.datetime_data
 from exposedfunctionality.function_parser.docstring_parser import (
     select_extraction_function,
     parse_numpy_docstring,
@@ -42,6 +43,14 @@ class TestExposedMethodDecorator(unittest.TestCase):
                 ["x", "out", "where"],
                 1,
                 ["absolute"],
+            ),
+            (
+                np.split,
+                "Split an array into multiple sub-arrays as views into `ary`",
+                3,
+                ["ary"],
+                1,
+                ["sub-arrays"],
             ),
         ]:
             self.assertTrue(f.__doc__ is not None)
