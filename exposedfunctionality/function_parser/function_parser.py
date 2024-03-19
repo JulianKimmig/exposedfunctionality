@@ -10,7 +10,6 @@ from typing import get_type_hints
 from .types import (
     SerializedFunction,
     DocstringParserResult,
-    FunctionParamError,
     FunctionInputParam,
     type_to_string,
     Optional,
@@ -94,7 +93,7 @@ def get_resolved_signature(
     # from any nested partials.
 
     # Obtain the original signature
-    sig = inspect.signature(base_func)
+    sig = inspect.signature(base_func, follow_wrapped=False)
 
     params = list(sig.parameters.values())
 
@@ -181,12 +180,20 @@ def function_method_parser(
         sig, base_func = get_resolved_signature(func)
 
         for i, p in sig.parameters.items():
+            n = i
+            if p.kind == p.VAR_POSITIONAL:
+                n = "*" + n
+            if p.kind == p.VAR_KEYWORD:
+                n = "**" + n
+
             param_dict: FunctionInputParam = {
-                "name": i,
+                "name": n,
                 "default": p.default,
                 "type": th[i] if i in th else p.empty,
                 "positional": (
-                    p.kind == p.POSITIONAL_ONLY or p.kind == p.POSITIONAL_OR_KEYWORD
+                    p.kind == p.POSITIONAL_ONLY
+                    or p.kind == p.POSITIONAL_OR_KEYWORD
+                    or p.kind == p.VAR_POSITIONAL
                 )
                 and (p.default == p.empty),
             }
@@ -201,9 +208,13 @@ def function_method_parser(
                 try:
                     json.dumps(param_dict["default"])
                 except TypeError as exe:
-                    raise FunctionParamError(
-                        f"input {i} has unserializable default value '{param_dict['default']}'"
-                    ) from exe
+                    try:
+                        param_dict["default"] = param_dict["default"].__name__
+                    except AttributeError:
+                        param_dict["default"] = str(param_dict["default"])
+                        # raise FunctionParamError(
+                        #     f"input {i} has unserializable default value '{param_dict['default']}'"
+                        # ) from exe
             else:
                 del param_dict["default"]
 
@@ -227,7 +238,6 @@ def function_method_parser(
 
         else:
             output_params = [{"name": "out", "type": type_to_string(th["return"])}]
-
 
     if parsed_ds is not None:
         # update input params

@@ -32,9 +32,9 @@ except ImportError:
 
 
 class ExposedMethodKwargs(TypedDict, total=False):
-    name: Optional[str] = (None,)
-    inputs: Optional[List[FunctionInputParam]] = (None,)
-    outputs: Optional[List[FunctionOutputParam]] = (None,)
+    name: Optional[str]
+    inputs: Optional[List[FunctionInputParam]]
+    outputs: Optional[List[FunctionOutputParam]]
 
 
 ExposedMethodKwargsKeysValues = Literal["name", "inputs", "outputs"]

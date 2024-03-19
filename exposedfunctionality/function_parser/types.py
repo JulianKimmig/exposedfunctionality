@@ -48,59 +48,62 @@ if USE_TYPED_DICT:
         middleware: Optional[List[Callable[[Any], Any]]]
 
     class FunctionInputParam(TypedDict, total=False):
-        """Type definition for a function parameter
-
-        Parameters:
-        - name: The name of the parameter
-        - default: The default value of the parameter
-        - type: The type of the parameter
-        - positional: Whether the parameter is positional
-        - optional: Whether the parameter is optional
-        - description: The description of the parameter
-        - middleware: A list of functions that can be used to transform the parameter value
-        - endpoints:  A dictionary of endpoints that can be used to represent the parameter value in different contexts
-        """
+        """Type definition for a function parameter"""
 
         name: Required[str]
+        """The name of the parameter, required"""
         default: Any
+        """The default value of the parameter, optional"""
         type: Required[str]
+        """The type of the parameter, required"""
         positional: Required[bool]
+        """Whether the parameter is positional, required"""
         optional: bool
-        description: Optional[str]
-        middleware: Optional[List[Callable[[Any], Any]]]
-        endpoints: Optional[Dict[str, Endpoint]]
+        """Whether the parameter is optional, optional"""
+        description: str
+        """The description of the parameter, optional"""
+        middleware: List[Callable[[Any], Any]]
+        """A list of functions that can be used to transform the parameter value, optional"""
+        endpoints: Dict[str, Endpoint]
+        """A dictionary of endpoints that can be used to represent the parameter value in different contexts, optional"""
 
     class FunctionOutputParam(TypedDict):
-        """Type definition for an output parameter
-
-        Parameters:
-        - name: The name of the parameter
-        - type: The type of the parameter
-        - description: The description of the parameter
-        - endpoints:  A dictionary of endpoints that can be used to represent the parameter value in different contexts
-        """
+        """Type definition for an output parameter"""
 
         name: str
+        """The name of the parameter, required"""
         type: str
+        """The type of the parameter, required"""
         description: Optional[str]
+        """The description of the parameter, optional"""
         endpoints: Optional[Dict[str, Endpoint]]
+        """A dictionary of endpoints that can be used to represent the parameter value in different contexts, optional"""
 
     class SerializedFunction(TypedDict):
         """Type definition for a serialized function"""
 
         name: str
+        """The name of the function"""
         input_params: List[FunctionInputParam]
+        """The input parameters of the function"""
         output_params: List[FunctionOutputParam]
+        """The output parameters of the function"""
         docstring: Optional[DocstringParserResult]
+        """The parsed docstring of the function"""
 
     class DocstringParserResult(TypedDict, total=False):
         """Type definition for a standardized parsed docstring"""
 
         original: str
+        """The original docstring"""
         input_params: list[FunctionInputParam]
+        """The input parameters of the function as parsed from the docstring"""
         output_params: list[FunctionOutputParam]
+        """The output parameters of the function as parsed from the docstring"""
         summary: Optional[str]
+        """The summary of the function as parsed from the docstring"""
         exceptions: dict[str, str]
+        """The exceptions of the function as parsed from the docstring"""
 
 else:
 
@@ -146,8 +149,7 @@ class ExposedFunction(Protocol[ReturnType]):
     _is_exposed_method: bool
 
     # Define the __call__ method to make this protocol a callable
-    def __call__(self, *args: Any, **kwargs: Any) -> ReturnType:
-        ...
+    def __call__(self, *args: Any, **kwargs: Any) -> ReturnType: ...
 
 
 class FunctionParamError(Exception):
@@ -190,6 +192,7 @@ ALLOWED_BUILTINS = {
     "List": list,
     "Dict": dict,
     "Tuple": tuple,
+    "Literal": Literal,
     "Set": set,
     "None": type(None),
 }
@@ -200,6 +203,15 @@ _STRING_GETTER: Dict[type, str] = {}
 for k, v in _TYPE_GETTER.items():
     if v not in _STRING_GETTER:
         _STRING_GETTER[v] = k
+_TYPE_GETTER.update(
+    {
+        "integer": int,
+        "floating": float,
+        "string": str,
+        "boolean": bool,
+        "number": Union[int, float],
+    }
+)
 
 
 def add_type(type_: type, name: str):
@@ -236,13 +248,15 @@ def string_to_type(string: str):
     - ImportError if there's a problem importing the module.
     """
 
-    if isinstance(string, type):
+    if isinstance(string, type) or (
+        hasattr(string, "__origin__") and not isinstance(string, str)
+    ):
         return string
 
     if not isinstance(string, str):
         raise TypeError(f"Expected str, got {type(string)}")
 
-    string = string.strip()
+    string = string.strip().strip(".,").strip()
 
     if string in _TYPE_GETTER:
         return _TYPE_GETTER[string]
@@ -312,6 +326,11 @@ def string_to_type(string: str):
                 return cls
         except ImportError as _exc:
             exc = _exc
+
+    if "optional" in string.lower():
+        string = string.replace("optional", "")
+        string = string.replace("Optional", "")
+        return Optional[string_to_type(string.strip())]
 
     if exc:
         raise TypeNotFoundError(string) from exc
@@ -389,3 +408,36 @@ def type_to_string(t: Union[type, str]):
             pass
 
     raise TypeNotFoundError(t)
+
+
+def cast_to_type(value: Any, type_):
+    try:
+        return type_(value)
+    except Exception as e:
+        pass
+
+    origin = getattr(type_, "__origin__", None)
+    ex = []
+    if origin:
+        if origin is Union:
+            for subtype in type_.__args__:
+                try:
+                    return cast_to_type(value, subtype)
+                except Exception as e:
+                    ex.append(e)
+        if origin is Optional:
+            if value in (None, "", "None", "none"):
+                return None
+            else:
+                return cast_to_type(value, type_.__args__[0])
+
+    ex.append(ValueError(f"Could not cast {value} to type {type_}"))
+
+    # raise all ex from each other
+    e = ex[-1]
+    for _e in reversed(ex[:-1]):
+        try:
+            raise e from _e
+        except Exception as ne:
+            e = ne
+    raise e

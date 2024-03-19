@@ -5,7 +5,11 @@ from .types import (
     SerializedFunction,
     FunctionParamError,
 )
+
 from .function_parser import function_method_parser, get_resolved_signature
+from . import types
+from . import docstring_parser
+from . import function_parser
 
 __all__ = [
     "parse_docstring",
@@ -15,4 +19,7 @@ __all__ = [
     "FunctionParamError",
     "function_method_parser",
     "get_resolved_signature",
+    "types",
+    "docstring_parser",
+    "function_parser",
 ]

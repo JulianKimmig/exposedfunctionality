@@ -7,7 +7,9 @@ from .types import (
     string_to_type,
     type_to_string,
     DocstringParserResult,
+    TypeNotFoundError,
     Callable,
+    cast_to_type,
 )
 
 
@@ -56,8 +58,10 @@ def _unify_parser_results(
                 param["default"] = param["default"][1:-1]
         if "default" in param and "type" in param:
             try:
-                param["default"] = string_to_type(param["type"])(param["default"])
-            except:
+                param["default"] = cast_to_type(
+                    param["default"], string_to_type(param["type"])
+                )
+            except (ValueError, TypeNotFoundError):
                 pass
         if "type" in param:
             param["type"] = type_to_string(param["type"])
@@ -475,7 +479,6 @@ def parse_numpy_docstring(docstring: str) -> DocstringParserResult:
 
     # Process Parameters section
     if "Parameters" in sections:
-
         params = []
         current_param = None
         current_param_intendation = 0
@@ -495,13 +498,18 @@ def parse_numpy_docstring(docstring: str) -> DocstringParserResult:
                             params.append({**current_param, "name": n.strip()})
                     else:
                         params.append(current_param)
+                stype = param_match.group(2)
+                try:
+                    stype = string_to_type(stype)
+                except Exception:
+                    pass
                 current_param = FunctionInputParam(
                     name=param_match.group(1)
                     .replace("`", "")
                     .replace("'", "'")
                     .replace('"', "")
                     .strip(),
-                    type=param_match.group(2),
+                    type=stype,
                     description="",
                     optional="optional" in param_match.group(2),
                 )
@@ -525,8 +533,9 @@ def parse_numpy_docstring(docstring: str) -> DocstringParserResult:
     if "Returns" in sections:
         params = []
         current_param = None
+        current_intendation = 0
         for line in sections["Returns"].split("\n"):
-            param_match = re.match(r"\s*([\w,\s]+)\s*:\s*(.+)", line)
+            param_match = re.match(r"\s*([\w,\s\-\_]+)\s*:\s*(.+)", line)
             if (
                 param_match
                 and param_match.group(1).strip()
@@ -540,9 +549,14 @@ def parse_numpy_docstring(docstring: str) -> DocstringParserResult:
                             params.append({**current_param, "name": n.strip()})
                     else:
                         params.append(current_param)
+                stype = param_match.group(2)
+                try:
+                    stype = string_to_type(stype)
+                except Exception:
+                    pass
                 current_param = FunctionOutputParam(
                     name=param_match.group(1).strip(),
-                    type=param_match.group(2),
+                    type=stype,
                     description="",
                 )
                 current_param_intendation = len(line) - len(line.lstrip())
