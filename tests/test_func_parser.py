@@ -89,10 +89,10 @@ class TestFunctionSerialization(unittest.TestCase):
         expected = {
             "name": "example_function",
             "input_params": [
-                {"name": "a", "type": "number", "positional": True},
+                {"name": "a", "type": "Union[float, int]", "positional": True},
                 {
                     "name": "b",
-                    "type": "Union[str, None]",
+                    "type": "Union[None, str]",
                     "positional": False,
                     "default": None,
                 },

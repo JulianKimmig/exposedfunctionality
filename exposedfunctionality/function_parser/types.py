@@ -16,7 +16,9 @@ from typing import (
     Literal,
     Protocol,
     TypeVar,
+    Sequence,
 )
+import collections
 
 if sys.version_info >= (3, 8):
     from typing import TypedDict
@@ -149,8 +151,7 @@ class ExposedFunction(Protocol[ReturnType]):
     _is_exposed_method: bool
 
     # Define the __call__ method to make this protocol a callable
-    def __call__(self, *args: Any, **kwargs: Any) -> ReturnType:
-        ...
+    def __call__(self, *args: Any, **kwargs: Any) -> ReturnType: ...
 
 
 class FunctionParamError(Exception):
@@ -191,6 +192,7 @@ ALLOWED_BUILTINS = {
     "Union": Union,
     "Type": Type,
     "List": list,
+    "Sequence": Sequence,
     "Dict": dict,
     "Tuple": tuple,
     "Literal": Literal,
@@ -214,12 +216,13 @@ def add_type(type_: type, name: str):
     Raises:
     - ValueError if the type is already in the list.
     """
-    if name in _TYPE_GETTER:
-        raise ValueError(f"Type '{name}' already exists.")
+    if name not in _TYPE_GETTER:
+        _TYPE_GETTER[name] = type_
 
-    _TYPE_GETTER[name] = type_
     if type_ not in _STRING_GETTER:
         _STRING_GETTER[type_] = name
+
+    return _TYPE_GETTER[name]
 
 
 for k, v in ALLOWED_BUILTINS.items():
@@ -233,6 +236,29 @@ for k, v in {
     "number": Union[int, float],
 }.items():
     add_type(v, k)
+
+
+def split_type_string(string: str):
+    """splits a comma seperated type string into its parts, while reserving nested types
+    e.g. "int, str" -> ["int", "str"]
+    e.g. "List[int], str" -> ["List[int]", "str"]
+    eg. "int, union[str, int]" -> ["int", "Union[str, int]"]
+    """
+    parts = []
+    level = 0
+    current = ""
+    for c in string:
+        if c == "," and level == 0:
+            parts.append(current)
+            current = ""
+        else:
+            if c == "[":
+                level += 1
+            elif c == "]":
+                level -= 1
+            current += c
+    parts.append(current)
+    return parts
 
 
 def string_to_type(string: str):
@@ -260,22 +286,21 @@ def string_to_type(string: str):
 
     string = string.strip().strip(".,").strip()
 
-    if string in _TYPE_GETTER:
-        return _TYPE_GETTER[string]
-
     # Helper function to handle parameterized types
 
     def handle_param_type(main_type: str, content: str):
         if main_type == "List":
             return List[string_to_type(content)]
+        elif main_type == "Sequence":
+            return Sequence[string_to_type(content)]
         elif main_type == "Dict":
-            key, value = map(str.strip, content.split(","))
+            key, value = map(str.strip, split_type_string(content))
             return Dict[string_to_type(key), string_to_type(value)]
         elif main_type == "Tuple":
-            items = tuple(map(string_to_type, content.split(",")))
+            items = tuple(map(string_to_type, split_type_string(content)))
             return Tuple[items]
         elif main_type == "Union":
-            subtypes = tuple(map(string_to_type, content.split(",")))
+            subtypes = tuple(map(string_to_type, split_type_string(content)))
             if len(subtypes) >= 2:
                 return Union[subtypes]  # type: ignore # mypy doesn't like the splat operator
             else:
@@ -287,7 +312,7 @@ def string_to_type(string: str):
         elif main_type == "Set":
             return Set[string_to_type(content)]
         elif main_type == "Literal":
-            items = [item.strip() for item in content.split(",")]
+            items = [item.strip() for item in split_type_string(content)]
             items = [item for item in items if item]
             items = tuple([ast.literal_eval(item.strip()) for item in items])
             return Literal[items]  # type: ignore # mypy doesn't like the splat operator
@@ -329,6 +354,9 @@ def string_to_type(string: str):
         except ImportError as _exc:
             exc = _exc
 
+    if string in _TYPE_GETTER:
+        return _TYPE_GETTER[string]
+
     if "optional" in string.lower():
         string = string.replace("optional", "")
         string = string.replace("Optional", "")
@@ -353,26 +381,24 @@ def type_to_string(t: Union[type, str]):
     if isinstance(t, str):
         return t
 
-    if t in _STRING_GETTER:
-        return _STRING_GETTER[t]
-        # Handle common typing types
-
     def get_by_typing(t):
         origin = getattr(t, "__origin__", None)
-        if origin:
+        if origin:  #
             # Optional[T] ist just Tuple[T,None] in disguise
             # if origin is Optional:
             #    return f"Optional[{type_to_string(t.__args__[0])}]"
             if origin in [list, List]:
                 return f"List[{type_to_string(t.__args__[0])}]"
+            if origin in [Sequence, collections.abc.Sequence]:
+                return f"Sequence[{type_to_string(t.__args__[0])}]"
             elif origin in [dict, Dict]:
                 key_type = type_to_string(t.__args__[0])
                 value_type = type_to_string(t.__args__[1])
                 return f"Dict[{key_type}, {value_type}]"
             elif origin in [tuple, Tuple]:
-                return f"Tuple[{', '.join(type_to_string(subtype) for subtype in t.__args__)}]"
+                return f"Tuple[{', '.join([type_to_string(subtype) for subtype in t.__args__])}]"
             elif origin is Union:
-                return f"Union[{', '.join(type_to_string(subtype) for subtype in t.__args__)}]"
+                return f"Union[{', '.join(sorted([type_to_string(subtype) for subtype in t.__args__]))}]"
             elif origin in [Type, type]:
                 if hasattr(t, "__args__"):
                     return f"Type[{type_to_string(t.__args__[0])}]"
@@ -393,6 +419,10 @@ def type_to_string(t: Union[type, str]):
             pass
         return ans
 
+    if t in _STRING_GETTER:
+        return _STRING_GETTER[t]
+        # Handle common typing types
+
     if hasattr(t, "__name__") and hasattr(t, "__module__"):
         name = t.__name__
         module = t.__module__
@@ -402,7 +432,8 @@ def type_to_string(t: Union[type, str]):
             if hasattr(module_obj, name):
                 ans = f"{module}.{name}"
                 try:
-                    add_type(t, ans)
+                    _t = add_type(t, ans)
+                    return type_to_string(_t)
                 except ValueError:
                     pass
                 return ans

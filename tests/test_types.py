@@ -148,12 +148,6 @@ class TestAddType(unittest.TestCase):
         self.assertIn("NewType", _TYPE_GETTER)
         self.assertEqual(_TYPE_GETTER["NewType"], NewType)
 
-    def test_add_existing_type_raises_error(self):
-        from exposedfunctionality.function_parser.types import add_type
-
-        with self.assertRaises(ValueError):
-            add_type(int, "int")
-
     def test_adding_duplicate_type_does_not_override(self):
         from exposedfunctionality.function_parser.types import add_type, _TYPE_GETTER
 
@@ -237,7 +231,7 @@ class TestTypeToString(unittest.TestCase):
 
         for i in range(2):
             self.assertIn(
-                type_to_string(Optional[int]), ["Union[int, None]", "Optional[int]"]
+                type_to_string(Optional[int]), ["Union[None, int]", "Optional[int]"]
             )
             self.assertEqual(
                 type_to_string(Union[int, str]), "Union[int, str]", _STRING_GETTER
