@@ -15,7 +15,7 @@ from . import func
 
 from .function_parser.custom_wrapper import controlled_wrapper, update_wrapper
 
-__version__ = "0.3.2"
+__version__ = "0.3.3"
 
 __all__ = [
     "function_parser",
