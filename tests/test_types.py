@@ -8,10 +8,6 @@ from time import time
 from typing import Set, Literal
 
 
-class CustomTypeT:
-    pass
-
-
 class CustomTypeA:
     pass
 
@@ -62,6 +58,9 @@ class TestStringToType(unittest.TestCase):
             string_to_type,
             add_type,
         )
+
+        class CustomTypeA:
+            pass
 
         add_type(CustomTypeA, "CustomTypeA")
 
@@ -197,9 +196,12 @@ class TestTypeToString(unittest.TestCase):
     def test_custom_types_to_string(self):
         from exposedfunctionality.function_parser.types import type_to_string, add_type
 
+        class CustomType_T:
+            pass
+
         t = str(time())  # since custom tyoe might be added in another test
-        add_type(CustomTypeT, "CustomType" + t)
-        self.assertEqual(type_to_string(CustomTypeT), "CustomType" + t)
+        add_type(CustomType_T, "CustomType" + t)
+        self.assertEqual(type_to_string(CustomType_T), "CustomType" + t)
 
     def test_unknown_type_raises_error(self):
         from exposedfunctionality.function_parser.types import (
@@ -275,3 +277,110 @@ class TestTypeToString(unittest.TestCase):
 
         with self.assertRaises(TypeNotFoundError):
             type_to_string(UnknownType)
+
+    def test_ser_types(self):
+        from exposedfunctionality import serialize_type
+        from typing import Optional, Union, List, Dict, Tuple, Any, Type
+
+        self.assertEqual(serialize_type(int), "int")
+        self.assertEqual(serialize_type(str), "str")
+        self.assertEqual(serialize_type(CustomTypeA), "test_types.CustomTypeA")
+        self.assertEqual(serialize_type(CustomTypeB), "test_types.CustomTypeB")
+        self.assertEqual(serialize_type(Optional[int]), {"anyOf": ["int", "None"]})
+        self.assertEqual(serialize_type(Union[int, str]), {"anyOf": ["int", "str"]})
+        self.assertEqual(serialize_type(List[int]), {"type": "array", "items": "int"})
+        self.assertEqual(
+            serialize_type(Dict[int, str]),
+            {"keys": "int", "type": "object", "values": "str"},
+        )
+        self.assertEqual(serialize_type(Tuple[int, str]), {"allOf": ["int", "str"]})
+        self.assertEqual(serialize_type(Any), "Any")
+        self.assertEqual(serialize_type(Type), {"type": "type", "value": "Any"})
+        self.assertEqual(
+            serialize_type(Set[float]),
+            {"items": "float", "type": "array", "uniqueItems": True},
+        )
+        self.assertEqual(serialize_type(Type[Any]), {"type": "type", "value": "Any"})
+        self.assertEqual(serialize_type(Type[int]), {"type": "type", "value": "int"})
+        self.assertEqual(
+            serialize_type(List[Union[int, str]]),
+            {"items": {"anyOf": ["str", "int"]}, "type": "array"},
+        )
+        self.assertEqual(
+            serialize_type(List[List[int]]),
+            {"items": {"items": "int", "type": "array"}, "type": "array"},
+        )
+        self.assertEqual(
+            serialize_type(Literal[1, 2, "hello world"]),
+            {
+                "type": "enum",
+                "values": [1, 2, "hello world"],
+                "nullable": False,
+                "keys": ["1", "2", "hello world"],
+            },
+        )
+        self.assertEqual(
+            serialize_type(Literal[1, 2, "hello world", None]),
+            {
+                "type": "enum",
+                "values": [1, 2, "hello world"],
+                "nullable": True,
+                "keys": ["1", "2", "hello world"],
+            },
+        )
+
+        self.assertEqual(
+            serialize_type(Optional[Literal[1, 2, "hello world"]]),
+            {
+                "type": "enum",
+                "values": [1, 2, "hello world"],
+                "nullable": True,
+                "keys": ["1", "2", "hello world"],
+            },
+        )
+        self.assertEqual(
+            serialize_type(Optional[Union[int, Literal[1, 2, "hello world"]]]),
+            {
+                "anyOf": [
+                    "int",
+                    {
+                        "type": "enum",
+                        "values": [1, 2, "hello world"],
+                        "nullable": True,
+                        "keys": ["1", "2", "hello world"],
+                    },
+                    "None",
+                ]
+            },
+        )
+        import numpy as np
+
+        self.assertEqual(
+            serialize_type(Union[int, np.ndarray]),
+            {"anyOf": ["int", "numpy.ndarray"]},
+        )
+
+        self.assertEqual(
+            serialize_type(Union[Union[Union[int, str], float], np.ndarray]),
+            {
+                "anyOf": [
+                    "int",
+                    "str",
+                    "float",
+                    "numpy.ndarray",
+                ]
+            },
+        )
+
+        self.assertEqual(
+            serialize_type(Union[Union[Union[int]]]),
+            "int",
+        )
+        self.assertEqual(
+            serialize_type(Union[Union[Tuple[Union[int, str], int]]]),
+            {"allOf": [{"anyOf": ["int", "str"]}, "int"]},
+        )
+        self.assertEqual(
+            serialize_type(Union[int, Union[Tuple[Union[int, str], int]]]),
+            {"anyOf": ["int", {"allOf": [{"anyOf": ["int", "str"]}, "int"]}]},
+        )

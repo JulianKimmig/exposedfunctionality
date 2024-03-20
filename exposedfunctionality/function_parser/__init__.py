@@ -4,6 +4,7 @@ from .types import (
     FunctionOutputParam,
     SerializedFunction,
     FunctionParamError,
+    serialize_type,
 )
 
 from .function_parser import function_method_parser, get_resolved_signature
@@ -22,4 +23,5 @@ __all__ = [
     "types",
     "docstring_parser",
     "function_parser",
+    "serialize_type",
 ]

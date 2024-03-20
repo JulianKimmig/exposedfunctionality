@@ -1,4 +1,5 @@
 from __future__ import annotations
+from enum import Enum
 import importlib
 import sys
 import re
@@ -17,6 +18,8 @@ from typing import (
     Protocol,
     TypeVar,
     Sequence,
+    get_origin,
+    get_args,
 )
 import collections
 
@@ -449,11 +452,13 @@ def cast_to_type(value: Any, type_):
     except Exception as e:
         pass
 
-    origin = getattr(type_, "__origin__", None)
+    origin = get_origin(type_)
+
     ex = []
     if origin:
+        args = get_args(type_)
         if origin is Union:
-            for subtype in type_.__args__:
+            for subtype in args:
                 try:
                     return cast_to_type(value, subtype)
                 except Exception as e:
@@ -462,7 +467,7 @@ def cast_to_type(value: Any, type_):
             if value in (None, "", "None", "none"):
                 return None
             else:
-                return cast_to_type(value, type_.__args__[0])
+                return cast_to_type(value, args[0])
 
     ex.append(ValueError(f"Could not cast {value} to type {type_}"))
 
@@ -474,3 +479,89 @@ def cast_to_type(value: Any, type_):
         except Exception as ne:
             e = ne
     raise e
+
+
+def serialize_type(type_: type) -> str:
+
+    origin = get_origin(type_)
+    args = get_args(type_)
+
+    if origin is Union:
+        hasNone = False
+        if None in args or NoneType in args:
+            hasNone = True
+            args = [arg for arg in args if arg is not None and arg is not NoneType]
+
+        subtypes = [serialize_type(subtype) for subtype in args]
+
+        if hasNone:
+            for st in subtypes:
+                # make enums nullable
+                if isinstance(st, dict) and "type" in st:
+                    if st["type"] == "enum":
+                        st["nullable"] = True
+                        if len(subtypes) == 1:
+                            return st
+
+            nonestr = type_to_string(NoneType)
+            if nonestr not in subtypes:
+                subtypes.append(nonestr)
+        if len(subtypes) == 1:
+            return subtypes[0]
+        seen = set()
+        seen_add = seen.add
+        return {
+            "anyOf": [x for x in subtypes if not (str(x) in seen or seen_add(str(x)))]
+        }
+
+    elif origin is Optional:
+        return serialize_type(Union[args + (None,)])
+    elif origin in [tuple, Tuple]:
+        return {
+            "allOf": [serialize_type(subtype) for subtype in args],
+        }
+    elif origin in [List, list, Sequence, collections.abc.Sequence]:
+        return {
+            "type": "array",
+            "items": serialize_type(args[0]),
+        }
+    elif origin in [Dict, dict]:
+        return {
+            "type": "object",
+            "keys": serialize_type(args[0]),
+            "values": serialize_type(args[1]),
+        }
+    elif origin is Literal:
+        typestrings = [item for item in args]
+        nullable = False
+        if None in typestrings:
+            typestrings.remove(None)
+            nullable = True
+        return {
+            "type": "enum",
+            "values": typestrings,
+            "nullable": nullable,
+            "keys": [str(item) for item in typestrings],
+        }
+
+    elif origin in [Set, set]:
+        return {
+            "type": "array",
+            "uniqueItems": True,
+            "items": serialize_type(args[0]),
+        }
+    elif origin in [Type, type]:
+        return {
+            "type": "type",
+            "value": serialize_type(args[0] if args else Any),
+        }
+
+    if (isinstance(type_, type) and issubclass(type_, Enum)) or isinstance(type_, Enum):
+        return {
+            "type": "enum",
+            "values": [member.value for member in type_],
+            "keys": [member.name for member in type_],
+            "nullable": False,
+        }
+
+    return type_to_string(type_)

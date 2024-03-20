@@ -14,8 +14,9 @@ from .variables import ExposedValue, add_exposed_value, get_exposed_values
 from . import func
 
 from .function_parser.custom_wrapper import controlled_wrapper, update_wrapper
+from .function_parser import serialize_type
 
-__version__ = "0.3.3"
+__version__ = "0.3.4"
 
 __all__ = [
     "function_parser",
@@ -34,4 +35,5 @@ __all__ = [
     "func",
     "controlled_wrapper",
     "update_wrapper",
+    "serialize_type",
 ]
