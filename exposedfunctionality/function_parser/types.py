@@ -481,7 +481,42 @@ def cast_to_type(value: Any, type_):
     raise e
 
 
-def serialize_type(type_: type) -> str:
+class AllOf(TypedDict):
+    allOf: List[SerializedType]
+
+
+class AnyOf(TypedDict):
+    anyOf: List[SerializedType]
+
+
+class ArrayOf(TypedDict):
+    type: Literal["array"]
+    items: SerializedType
+    uniqueItems: bool
+
+
+class DictOf(TypedDict):
+    type: Literal["object"]
+    keys: SerializedType
+    values: SerializedType
+
+
+class EnumOf(TypedDict):
+    type: Literal["enum"]
+    values: List[Union[int, float, str, bool, None]]
+    keys: List[str]
+    nullable: bool
+
+
+class TypeOf(TypedDict):
+    type: Literal["type"]
+    value: SerializedType
+
+
+SerializedType = Union[str, AllOf, AnyOf, ArrayOf, DictOf, EnumOf, TypeOf]
+
+
+def serialize_type(type_: type) -> SerializedType:
 
     origin = get_origin(type_)
     args = get_args(type_)
@@ -510,58 +545,60 @@ def serialize_type(type_: type) -> str:
             return subtypes[0]
         seen = set()
         seen_add = seen.add
-        return {
-            "anyOf": [x for x in subtypes if not (str(x) in seen or seen_add(str(x)))]
-        }
+        return AnyOf(
+            anyOf=[x for x in subtypes if not (str(x) in seen or seen_add(str(x)))]
+        )
 
     elif origin is Optional:
         return serialize_type(Union[args + (None,)])
     elif origin in [tuple, Tuple]:
-        return {
-            "allOf": [serialize_type(subtype) for subtype in args],
-        }
+        return AllOf(
+            allOf=[serialize_type(subtype) for subtype in args],
+        )
+
     elif origin in [List, list, Sequence, collections.abc.Sequence]:
-        return {
-            "type": "array",
-            "items": serialize_type(args[0]),
-        }
+        return ArrayOf(
+            type="array",
+            uniqueItems=False,
+            items=serialize_type(args[0]),
+        )
     elif origin in [Dict, dict]:
-        return {
-            "type": "object",
-            "keys": serialize_type(args[0]),
-            "values": serialize_type(args[1]),
-        }
+        return DictOf(
+            type="object",
+            keys=serialize_type(args[0]),
+            values=serialize_type(args[1]),
+        )
     elif origin is Literal:
         typestrings = [item for item in args]
         nullable = False
         if None in typestrings:
             typestrings.remove(None)
             nullable = True
-        return {
-            "type": "enum",
-            "values": typestrings,
-            "nullable": nullable,
-            "keys": [str(item) for item in typestrings],
-        }
+        return EnumOf(
+            type="enum",
+            values=typestrings,
+            keys=[str(item) for item in typestrings],
+            nullable=nullable,
+        )
 
     elif origin in [Set, set]:
-        return {
-            "type": "array",
-            "uniqueItems": True,
-            "items": serialize_type(args[0]),
-        }
+        return ArrayOf(
+            type="array",
+            uniqueItems=True,
+            items=serialize_type(args[0]),
+        )
     elif origin in [Type, type]:
-        return {
-            "type": "type",
-            "value": serialize_type(args[0] if args else Any),
-        }
+        return TypeOf(
+            type="type",
+            value=serialize_type(args[0] if args else Any),
+        )
 
     if (isinstance(type_, type) and issubclass(type_, Enum)) or isinstance(type_, Enum):
-        return {
-            "type": "enum",
-            "values": [member.value for member in type_],
-            "keys": [member.name for member in type_],
-            "nullable": False,
-        }
+        return EnumOf(
+            type="enum",
+            values=[member.value for member in type_],
+            keys=[member.name for member in type_],
+            nullable=False,
+        )
 
     return type_to_string(type_)

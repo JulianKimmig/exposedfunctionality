@@ -288,7 +288,10 @@ class TestTypeToString(unittest.TestCase):
         self.assertEqual(serialize_type(CustomTypeB), "test_types.CustomTypeB")
         self.assertEqual(serialize_type(Optional[int]), {"anyOf": ["int", "None"]})
         self.assertEqual(serialize_type(Union[int, str]), {"anyOf": ["int", "str"]})
-        self.assertEqual(serialize_type(List[int]), {"type": "array", "items": "int"})
+        self.assertEqual(
+            serialize_type(List[int]),
+            {"type": "array", "items": "int", "uniqueItems": False},
+        )
         self.assertEqual(
             serialize_type(Dict[int, str]),
             {"keys": "int", "type": "object", "values": "str"},
@@ -304,11 +307,15 @@ class TestTypeToString(unittest.TestCase):
         self.assertEqual(serialize_type(Type[int]), {"type": "type", "value": "int"})
         self.assertEqual(
             serialize_type(List[Union[int, str]]),
-            {"items": {"anyOf": ["str", "int"]}, "type": "array"},
+            {"items": {"anyOf": ["str", "int"]}, "type": "array", "uniqueItems": False},
         )
         self.assertEqual(
             serialize_type(List[List[int]]),
-            {"items": {"items": "int", "type": "array"}, "type": "array"},
+            {
+                "items": {"items": "int", "type": "array", "uniqueItems": False},
+                "type": "array",
+                "uniqueItems": False,
+            },
         )
         self.assertEqual(
             serialize_type(Literal[1, 2, "hello world"]),
