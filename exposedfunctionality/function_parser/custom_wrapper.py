@@ -26,6 +26,7 @@ def update_wrapper(
     never_update=(),
     update_always=UPDATE_ALWAYS,
     update_dicts=True,
+    wrapper_attribute="__wrapped__",
 ):
     """
     Update the wrapper function to look more like the wrapped function.
@@ -38,6 +39,7 @@ def update_wrapper(
         never_update: Attributes that should never be updated.
         update_always: Attributes that should always be updated.
         update_dicts: If True, update the dictionary attributes instead of overwriting them.
+        wrapper_attribute: The attribute name to use for storing the wrapped function, defaults to "__wrapped__".
 
     Returns:
         The wrapper function with updated attributes.
@@ -98,7 +100,7 @@ def update_wrapper(
             pass
 
     # Associate the wrapped function with the wrapper function for introspection
-    wrapper.__wrapped__ = wrapped
+    setattr(wrapper, wrapper_attribute, wrapped)
     # Return the wrapper so this can be used as a decorator via partial()
     return wrapper
 
@@ -110,6 +112,7 @@ def controlled_wrapper(
     never_update=(),
     update_always=UPDATE_ALWAYS,
     update_dicts=True,
+    wrapper_attribute="__wrapped__",
 ):
     """
     Returns a decorator that updates a wrapper function to look more like the wrapped function.
@@ -123,6 +126,7 @@ def controlled_wrapper(
         never_update: Attributes that should never be updated.
         update_always: Attributes that should always be updated.
         update_dicts: If True, allows updating of dictionary attributes instead of overwriting them.
+        wrapper_attribute: The attribute name to use for storing the wrapped function, defaults to "__wrapped__".
 
     Returns:
         A partial function that can be used as a decorator to update the wrapper function.
@@ -137,4 +141,5 @@ def controlled_wrapper(
         update_if_empty=update_if_empty,
         update_if_missing=update_if_missing,
         never_update=never_update,
+        wrapper_attribute=wrapper_attribute,
     )
