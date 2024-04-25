@@ -401,7 +401,7 @@ def type_to_string(t: Union[type, str]):
             elif origin in [tuple, Tuple]:
                 return f"Tuple[{', '.join([type_to_string(subtype) for subtype in t.__args__])}]"
             elif origin is Union:
-                return f"Union[{', '.join(sorted([type_to_string(subtype) for subtype in t.__args__]))}]"
+                return f"Union[{', '.join([type_to_string(subtype) for subtype in t.__args__])}]"
             elif origin in [Type, type]:
                 if hasattr(t, "__args__"):
                     return f"Type[{type_to_string(t.__args__[0])}]"
