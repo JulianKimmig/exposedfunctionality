@@ -89,10 +89,10 @@ class TestFunctionSerialization(unittest.TestCase):
         expected = {
             "name": "example_function",
             "input_params": [
-                {"name": "a", "type": "Union[float, int]", "positional": True},
+                {"name": "a", "type": "Union[int, float]", "positional": True},
                 {
                     "name": "b",
-                    "type": "Union[None, str]",
+                    "type": "Union[str, None]",
                     "positional": False,
                     "default": None,
                 },
@@ -265,7 +265,7 @@ class TestFunctionSerialization(unittest.TestCase):
         from exposedfunctionality.function_parser import function_method_parser
 
         # Test function with type hint from docstring
-        def docstring_type(a: int, b=None):  # pylint: disable=unused-argument
+        def docstring_type(a: int, b=0):  # pylint: disable=unused-argument
             """
             Args:
                 a (float): This is an integer.
@@ -290,7 +290,7 @@ class TestFunctionSerialization(unittest.TestCase):
                     "description": "This is an integer.",
                 },
                 {
-                    "default": 1,
+                    "default": 0,
                     "name": "b",
                     "type": "int",
                     "positional": False,

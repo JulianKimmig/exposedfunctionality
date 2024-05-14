@@ -246,18 +246,17 @@ def function_method_parser(
                 if p["name"] != parsed_ip["name"]:
                     continue
 
-                if (
-                    "description" not in p or p["description"] is None
-                ) and "description" in parsed_ip:
+                if ("description" not in p) and "description" in parsed_ip:
                     p["description"] = parsed_ip["description"]
-                if (
-                    "optional" not in p or p["optional"] is None
-                ) and "optional" in parsed_ip:
-                    p["optional"] = parsed_ip["optional"]
+                # optinoanl should be set by the parser
+                # if ("optional" not in p) and "optional" in parsed_ip:
+                #     p["optional"] = parsed_ip["optional"]
 
                 if (
-                    "default" not in p or p["default"] is None
-                ) and "default" in parsed_ip:
+                    ("default" not in p)
+                    and "default" in parsed_ip
+                    and p.get("optional", False)
+                ):
                     p["default"] = parsed_ip["default"]
 
                 if (
@@ -268,6 +267,13 @@ def function_method_parser(
                 ) and "type" in parsed_ip:
                     p["type"] = parsed_ip["type"]
 
+                # a default value makes the parameter optional by default and the parameter non-positional
+                if "default" in p:
+                    p["optional"] = True
+                    p["positional"] = False
+                else:
+                    p["optional"] = False
+                    p["positional"] = True
                 # possitional is always set
                 # if (
                 #    "positional" not in p or p["positional"] is None

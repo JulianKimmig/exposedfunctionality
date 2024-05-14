@@ -233,7 +233,7 @@ class TestTypeToString(unittest.TestCase):
 
         for i in range(2):
             self.assertIn(
-                type_to_string(Optional[int]), ["Union[None, int]", "Optional[int]"]
+                type_to_string(Optional[int]), ["Union[int, None]", "Optional[int]"]
             )
             self.assertEqual(
                 type_to_string(Union[int, str]), "Union[int, str]", _STRING_GETTER
@@ -307,7 +307,7 @@ class TestTypeToString(unittest.TestCase):
         self.assertEqual(serialize_type(Type[int]), {"type": "type", "value": "int"})
         self.assertEqual(
             serialize_type(List[Union[int, str]]),
-            {"items": {"anyOf": ["str", "int"]}, "type": "array", "uniqueItems": False},
+            {"items": {"anyOf": ["int", "str"]}, "type": "array", "uniqueItems": False},
         )
         self.assertEqual(
             serialize_type(List[List[int]]),
