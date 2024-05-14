@@ -17,7 +17,7 @@ from .function_parser.custom_wrapper import controlled_wrapper, update_wrapper
 from .function_parser import serialize_type
 from .function_parser.types import add_type
 
-__version__ = "0.3.6"
+__version__ = "0.3.7"
 
 __all__ = [
     "function_parser",
