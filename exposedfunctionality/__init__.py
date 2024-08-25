@@ -13,11 +13,15 @@ from . import function_parser
 from .variables import ExposedValue, add_exposed_value, get_exposed_values
 from . import func
 
-from .function_parser.custom_wrapper import controlled_wrapper, update_wrapper
+from .function_parser.custom_wrapper import (
+    controlled_wrapper,
+    update_wrapper,
+    controlled_unwrap,
+)
 from .function_parser import serialize_type
-from .function_parser.types import add_type
+from .function_parser.types import add_type, SerializedType
 
-__version__ = "0.3.7"
+__version__ = "0.3.8"
 
 __all__ = [
     "function_parser",
@@ -38,4 +42,6 @@ __all__ = [
     "update_wrapper",
     "serialize_type",
     "add_type",
+    "SerializedType",
+    "controlled_unwrap",
 ]

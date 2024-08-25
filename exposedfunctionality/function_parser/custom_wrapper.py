@@ -1,4 +1,6 @@
 from functools import wraps, partial
+from inspect import unwrap
+import sys
 
 # heavily inspired by the functools.wraps function
 
@@ -49,6 +51,8 @@ def update_wrapper(
 
     # Convert to sets for easier management and subtract never_update
     never_update = set(never_update)
+    never_update.add(wrapper_attribute)  # never update the wrapper attribute
+    never_update.add("__wrapped__")  # never update the default __wrapped__ attribute
 
     update_if_empty = set(update_if_empty) - never_update
     update_if_missing = (set(update_if_missing) - never_update) | update_if_empty
@@ -143,3 +147,33 @@ def controlled_wrapper(
         never_update=never_update,
         wrapper_attribute=wrapper_attribute,
     )
+
+
+def controlled_unwrap(
+    func, *, return_memo=False, wrapper_attribute="__wrapped__", stop=None
+):
+    # extended from functools.unwrap
+    if stop is None:
+
+        def _is_wrapper(f):
+            return hasattr(f, wrapper_attribute)
+
+    else:
+
+        def _is_wrapper(f):
+            return hasattr(f, wrapper_attribute) and not stop(f)
+
+    f = func  # remember the original func for error reporting
+    # Memoise by id to tolerate non-hashable objects, but store objects to
+    # ensure they aren't destroyed, which would allow their IDs to be reused.
+    memo = {id(f): f}
+    recursion_limit = sys.getrecursionlimit()
+    while _is_wrapper(func):
+        func = getattr(func, wrapper_attribute)
+        id_func = id(func)
+        if (id_func in memo) or (len(memo) >= recursion_limit):
+            raise ValueError("wrapper loop when unwrapping {!r}".format(f))
+        memo[id_func] = func
+    if return_memo:
+        return func, memo
+    return func

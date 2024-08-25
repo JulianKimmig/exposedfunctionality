@@ -264,7 +264,9 @@ def split_type_string(string: str):
     return parts
 
 
-def string_to_type(string: str):
+def string_to_type(
+    string: str,
+) -> type:
     """
     Convert a string to a class object.
 
