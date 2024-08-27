@@ -93,7 +93,7 @@ class TestExposedMethodDecorator(unittest.TestCase):
         f, summarycheck, ipsum, ipnamecheck, opsum, opnamecheck = (
             np.arange,
             "Return evenly spaced values within a given interval.",
-            5,
+            6 if int(np.__version__[0]) >= 2 else 5,
             ["start", "stop", "step"],
             1,
             ["arange"],

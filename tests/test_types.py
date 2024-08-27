@@ -284,8 +284,14 @@ class TestTypeToString(unittest.TestCase):
 
         self.assertEqual(serialize_type(int), "int")
         self.assertEqual(serialize_type(str), "str")
-        self.assertEqual(serialize_type(CustomTypeA), "test_types.CustomTypeA")
-        self.assertEqual(serialize_type(CustomTypeB), "test_types.CustomTypeB")
+        self.assertIn(
+            serialize_type(CustomTypeA),
+            ["tests.test_types.CustomTypeA", "test_types.CustomTypeA"],
+        )
+        self.assertIn(
+            serialize_type(CustomTypeB),
+            ["tests.test_types.CustomTypeB", "test_types.CustomTypeB"],
+        )
         self.assertEqual(serialize_type(Optional[int]), {"anyOf": ["int", "None"]})
         self.assertEqual(serialize_type(Union[int, str]), {"anyOf": ["int", "str"]})
         self.assertEqual(
