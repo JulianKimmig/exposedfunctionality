@@ -15,6 +15,7 @@ pyyaml = "*"
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
 numpy = "*"
+pre-commit = "*"
 
 [build-system]
 requires = ["poetry-core"]
