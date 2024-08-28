@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "exposedfunctionality"
-version = "0.3.8"
+version = "0.3.9"
 description = "tool to expose functionalities to multiple tools"
 authors = ["Julian Kimmig <julian.kimmig@linkdlab.de>"]
 license = "MIT"
@@ -15,6 +15,7 @@ pyyaml = "*"
 [tool.poetry.group.dev.dependencies]
 pytest = "*"
 numpy = "*"
+pre-commit = "*"
 
 [build-system]
 requires = ["poetry-core"]
