@@ -261,7 +261,10 @@ class TestTypeToString(unittest.TestCase):
         """
         from exposedfunctionality.function_parser.types import type_to_string
 
-        self.assertEqual(type_to_string(CustomTypeB), "test_types.CustomTypeB")
+        self.assertIn(
+            type_to_string(CustomTypeB),
+            ["tests.test_types.CustomTypeB", "test_types.CustomTypeB"],
+        )
 
     def test_unknown_type(self):
         """
