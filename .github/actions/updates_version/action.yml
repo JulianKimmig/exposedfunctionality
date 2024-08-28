@@ -45,8 +45,8 @@ runs:
 
     - name: Publish
       shell: bash
-      env:
-        POETRY_PYPI_TOKEN_PYPI: ${{ inputs.pypi_token }}
+      # env:
+      #   POETRY_PYPI_TOKEN_PYPI: ${{ inputs.pypi_token }}
       run: |
         echo -n "$POETRY_PYPI_TOKEN_PYPI"|wc -mc
         poetry publish --build
