@@ -14,8 +14,7 @@ jobs:
       pull-requests: read
       id-token: write
     environment:
-      name: pypi
-      url: https://pypi.org/p/exposedfunctionality
+      name: main
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -54,14 +53,6 @@ jobs:
           else
             echo "should_update=false" >> $GITHUB_OUTPUT
           fi
-
-      # - name: Publish
-      #   shell: bash
-      #   # env:
-      #   #   POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
-      #   run: |
-      #     echo -n "$POETRY_PYPI_TOKEN_PYPI"|wc -mc
-      #     poetry publish
 
       - name: Package project
         run: poetry build
