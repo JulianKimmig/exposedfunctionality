@@ -6,14 +6,13 @@ on:
     branches:
       - main
 
-permissions:
-  contents: write
-  pull-requests: read
-  id-token: write
-
 jobs:
   version_publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+      id-token: write
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
