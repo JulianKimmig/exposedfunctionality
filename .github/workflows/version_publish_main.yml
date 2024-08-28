@@ -52,13 +52,19 @@ jobs:
             echo "should_update=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Publish
-        shell: bash
-        # env:
-        #   POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
-        run: |
-          echo -n "$POETRY_PYPI_TOKEN_PYPI"|wc -mc
-          poetry publish --build
+      # - name: Publish
+      #   shell: bash
+      #   # env:
+      #   #   POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_TOKEN }}
+      #   run: |
+      #     echo -n "$POETRY_PYPI_TOKEN_PYPI"|wc -mc
+      #     poetry publish
+
+      - name: Package project
+        run: poetry build
+
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
 
       - name: Check if tag exists
         shell: bash
