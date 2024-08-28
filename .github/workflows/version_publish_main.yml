@@ -25,5 +25,5 @@ jobs:
 
       - name: vb
         uses: ./.github/actions/updates_version
-        with:
-          pypi_token: ${{ secrets.PYPI_TOKEN }}
+        # with:
+        # pypi_token: ${{ secrets.PYPI_TOKEN }}

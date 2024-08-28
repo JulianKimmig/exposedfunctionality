@@ -4,7 +4,8 @@ description: Check if the current version is the latest on PyPI and update it if
 inputs:
   pypi_token:
     description: "PyPI API token"
-    required: true
+    required: false
+    default: ""
 
 runs:
   using: "composite"
