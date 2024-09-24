@@ -8,9 +8,6 @@ import json
 from .docstring_parser import parse_docstring
 from typing import get_type_hints
 from .types import (
-    SerializedFunction,
-    DocstringParserResult,
-    FunctionInputParam,
     type_to_string,
     Optional,
     Any,
@@ -18,8 +15,14 @@ from .types import (
     List,
     Tuple,
     NoneType,
-    ReturnType,
     Dict,
+)
+
+from .ser_types import (
+    FunctionInputParam,
+    SerializedFunction,
+    ReturnType,
+    DocstringParserResult,
 )
 
 
