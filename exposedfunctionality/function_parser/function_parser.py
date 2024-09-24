@@ -6,12 +6,11 @@ import inspect
 from functools import partial
 import json
 from .docstring_parser import parse_docstring
-from typing import get_type_hints
+from typing import get_type_hints, Callable
 from .types import (
     type_to_string,
     Optional,
     Any,
-    Callable,
     List,
     Tuple,
     NoneType,

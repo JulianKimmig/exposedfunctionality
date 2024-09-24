@@ -1,10 +1,11 @@
 from __future__ import annotations
 import re
 import warnings
+
+from typing import Callable
 from .types import (
     string_to_type,
     type_to_string,
-    Callable,
     cast_to_type,
 )
 
