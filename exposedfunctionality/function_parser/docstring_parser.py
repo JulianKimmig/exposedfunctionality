@@ -2,14 +2,17 @@ from __future__ import annotations
 import re
 import warnings
 from .types import (
-    FunctionInputParam,
-    FunctionOutputParam,
     string_to_type,
     type_to_string,
-    DocstringParserResult,
-    TypeNotFoundError,
     Callable,
     cast_to_type,
+)
+
+from .ser_types import (
+    FunctionInputParam,
+    FunctionOutputParam,
+    DocstringParserResult,
+    TypeNotFoundError,
 )
 
 
@@ -511,6 +514,7 @@ def parse_numpy_docstring(docstring: str) -> DocstringParserResult:
                     .strip(),
                     type=stype,
                     description="",
+                    positional="optional" not in param_match.group(2),
                     optional="optional" in param_match.group(2),
                 )
                 current_param_intendation = len(line) - len(line.lstrip())
