@@ -6,20 +6,22 @@ import inspect
 from functools import partial
 import json
 from .docstring_parser import parse_docstring
-from typing import get_type_hints
+from typing import get_type_hints, Callable
 from .types import (
-    SerializedFunction,
-    DocstringParserResult,
-    FunctionInputParam,
     type_to_string,
     Optional,
     Any,
-    Callable,
     List,
     Tuple,
     NoneType,
-    ReturnType,
     Dict,
+)
+
+from .ser_types import (
+    FunctionInputParam,
+    SerializedFunction,
+    ReturnType,
+    DocstringParserResult,
 )
 
 

@@ -1,7 +1,8 @@
 import asyncio
 import json
 
-from ..function_parser.types import Optional, Dict, Union, Type, Any, List, Callable
+from ..function_parser.types import Optional, Dict, Union, Type, Any, List
+from typing import Callable
 
 
 nonetype = object()
