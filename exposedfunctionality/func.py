@@ -11,18 +11,21 @@ from .function_parser import (
     FunctionOutputParam,
     FunctionInputParam,
 )
-from .function_parser.types import (
+from typing import (
+    ParamSpec,
+    Union,
     Any,
-    Dict,
     Callable,
+    Dict,
     Tuple,
-    Optional,
     List,
+    Optional,
+    Literal,
+    TypedDict,
+)
+from .function_parser import (
     ExposedFunction,
     ReturnType,
-    Union,
-    TypedDict,
-    Literal,
 )
 
 try:
@@ -44,9 +47,11 @@ ExposedMethodKwargsKeys: List[ExposedMethodKwargsKeysValues] = [
     "outputs",
 ]
 
+P = ParamSpec("P")
+
 
 def expose_method(
-    func: Callable[..., ReturnType],
+    func: Callable[P, ReturnType],
     name: Optional[str] = None,
     inputs: Optional[List[FunctionInputParam]] = None,
     outputs: Optional[List[FunctionOutputParam]] = None,
@@ -55,7 +60,7 @@ def expose_method(
     Expose a method by adding the necessary metadata to the function.
 
     Args:
-        func (Callable[..., ReturnType]): Method to be exposed.
+        func (Callable[P, ReturnType]): Method to be exposed.
         name (Optional[str], optional): Name of the method. Defaults to None.
         inputs (Optional[List[FunctionInputParam]], optional): List of input parameters. Defaults to None.
         outputs (Optional[List[FunctionOutputParam]], optional): List of output parameters. Defaults to None.
@@ -104,7 +109,7 @@ def exposed_method(
     name: Optional[str] = None,
     inputs: Optional[List[FunctionInputParam]] = None,
     outputs: Optional[List[FunctionOutputParam]] = None,
-) -> Callable[Callable[..., ReturnType], ExposedFunction[ReturnType]]:  # type: ignore # ignore a random pylance error
+) -> Callable[[Callable[P, ReturnType]], ExposedFunction[ReturnType]]:  # type: ignore # ignore a random pylance error
     """
     Decorator for exposing a method to the frontend.
 
@@ -114,7 +119,7 @@ def exposed_method(
         outputs (Optional[List[FunctionOutputParam]], optional): List of output parameters. Defaults to None.
 
     Returns:
-        Callable[Callable[..., ReturnType], ExposedFunction[ReturnType]]: Decorator function.
+        Callable[[Callable[P, ReturnType]], ExposedFunction[ReturnType]]: Decorator function.
 
     Example:
         >>> from exposedfunctionality import exposed_method
@@ -125,7 +130,7 @@ def exposed_method(
         'new_name'
     """
 
-    def decorator(func: Callable[..., ReturnType]) -> ExposedFunction[ReturnType]:
+    def decorator(func: Callable[P, ReturnType]) -> ExposedFunction[ReturnType]:
         return expose_method(func, name=name, inputs=inputs, outputs=outputs)
 
     return decorator
@@ -154,15 +159,16 @@ def get_exposed_methods(obj: Any) -> Dict[str, Tuple[Callable, SerializedFunctio
 
 
 def is_exposed_method(
-    obj: Union[Callable[..., ReturnType], ExposedFunction[ReturnType]],
+    obj: Union[Callable[P, ReturnType], ExposedFunction[ReturnType]],
 ) -> bool:
     return (
-        hasattr(obj, "_is_exposed_method") and obj._is_exposed_method  # pylint: disable=W0212
+        hasattr(obj, "_is_exposed_method")
+        and obj._is_exposed_method  # pylint: disable=W0212
     )
 
 
 def assure_exposed_method(
-    obj: Union[Callable[..., ReturnType], ExposedFunction[ReturnType]],
+    obj: Union[Callable[P, ReturnType], ExposedFunction[ReturnType]],
     **kwargs: Unpack[ExposedMethodKwargs],
 ) -> ExposedFunction[ReturnType]:
     """
@@ -170,7 +176,7 @@ def assure_exposed_method(
     If it is not exposed, it is exposed with the given kwargs.
 
     Args:
-        obj (Union[Callable[..., ReturnType], ExposedFunction[ReturnType]]): Method to be exposed.
+        obj (Union[Callable[P, ReturnType], ExposedFunction[ReturnType]]): Method to be exposed.
         **kwargs: Keyword arguments passed to expose_method.
 
     Returns:
