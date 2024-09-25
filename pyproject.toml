@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "exposedfunctionality"
-version = "0.3.13"
+version = "0.3.14"
 description = "tool to expose functionalities to multiple tools"
 authors = ["Julian Kimmig <julian.kimmig@linkdlab.de>"]
 license = "MIT"
 readme = "README.md"
 
-[project.urls]
+[tool.poetry.urls]
 homepage  = "https://github.com/JulianKimmig/exposedfunctionality"
 source  = "https://github.com/JulianKimmig/exposedfunctionality"
 tracker  = "https://github.com/JulianKimmig/exposedfunctionality/issues"
