@@ -1,18 +1,17 @@
 [tool.poetry]
 name = "exposedfunctionality"
-version = "0.3.12"
+version = "0.3.13"
 description = "tool to expose functionalities to multiple tools"
 authors = ["Julian Kimmig <julian.kimmig@linkdlab.de>"]
 license = "MIT"
 readme = "README.md"
 
 [project.urls]
-homepage  = ""
+homepage  = "https://github.com/JulianKimmig/exposedfunctionality"
 source  = "https://github.com/JulianKimmig/exposedfunctionality"
 tracker  = "https://github.com/JulianKimmig/exposedfunctionality/issues"
-documentation = ""
-download = "https://pypi.org/project/{{ package-name }}/#files"
-"release notes" = ""
+download = "https://pypi.org/project/exposedfunctionality/#files"
+
 
 [tool.poetry.dependencies]
 python = ">=3.10"
