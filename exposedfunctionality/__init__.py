@@ -21,7 +21,7 @@ from .function_parser.custom_wrapper import (
 from .function_parser import serialize_type
 from .function_parser.types import add_type, SerializedType
 
-__version__ = "0.3.14"
+__version__ = "0.3.15"
 
 __all__ = [
     "function_parser",
