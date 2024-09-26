@@ -307,7 +307,7 @@ def type_to_string(t: Union[type, str]):
 def cast_to_type(value: Any, type_):
     try:
         return type_(value)
-    except Exception as e:
+    except Exception:
         pass
 
     origin = get_origin(type_)
