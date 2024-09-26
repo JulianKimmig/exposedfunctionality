@@ -11,6 +11,8 @@ from .types import (
 
 from .ser_types import (
     FunctionInputParam,
+    PositionalFunctionInputParam,
+    KeywordFunctionInputParam,
     FunctionOutputParam,
     DocstringParserResult,
     TypeNotFoundError,
@@ -22,25 +24,17 @@ def _unify_parser_results(
 ) -> DocstringParserResult:
     # default empty lists
 
+    result = DocstringParserResult.from_dict(result)
+
     result["original"] = docstring
-    if "input_params" not in result:
-        result["input_params"] = []
-    if "output_params" not in result:
-        result["output_params"] = []
-    if "exceptions" not in result:
-        result["exceptions"] = {}
 
-    if "summary" in result:
-        result["summary"] = result["summary"].strip()
-
-        if not result["summary"]:
-            del result["summary"]
+    result.summary = result.summary.strip()
 
     # strip and remove empty descriptions
-    for param in result["input_params"]:
-        if "description" not in param:
-            param["description"] = None
-
+    result.input_params = [
+        PositionalFunctionInputParam.from_dict(ip) for ip in result.input_params
+    ]
+    for param in result.input_params:
         if param["description"]:
             param["description"] = param["description"].strip()
 
@@ -54,20 +48,23 @@ def _unify_parser_results(
                     )
                     default_val = match.group(1)
 
-                    param["default"] = default_val
+                    if hasattr(param, "default"):
+                        param["default"] = default_val
 
                     param["description"] = description.strip(" ,.")
-        if "default" in param and isinstance(param["default"], str):
-            if param["default"].startswith(("`", "'", '"')):
-                param["default"] = param["default"][1:-1]
-        if "default" in param and "type" in param:
-            try:
-                param["default"] = cast_to_type(
-                    param["default"], string_to_type(param["type"])
-                )
-            except (ValueError, TypeNotFoundError):
-                pass
-        if "type" in param:
+
+        if hasattr(param, "default"):
+            if isinstance(param.default, str):
+                if param.default.startswith(("`", "'", '"')):
+                    param.default = param.default[1:-1]
+            if param.type:
+                try:
+                    param.default = cast_to_type(
+                        param.default, string_to_type(param["type"])
+                    )
+                except (ValueError, TypeNotFoundError):
+                    pass
+        if param.type:
             param["type"] = type_to_string(param["type"])
 
         if param["description"]:
@@ -84,24 +81,12 @@ def _unify_parser_results(
         if param["description"] and not param["description"].endswith("."):
             param["description"] += "."
 
-        if "positional" not in param:
-            if "default" in param or ("optional" in param and param["optional"]):
-                param["positional"] = False
-            else:
-                param["positional"] = True
-
-        if "optional" not in param:
-            if "default" in param or not param["positional"]:
-                param["optional"] = True
-            else:
-                param["optional"] = False
-
         if not param["description"]:
-            del param["description"]
+            param["description"] = None
 
-    for i, param in enumerate(result["output_params"]):
-        if "name" not in param:
-            param["name"] = f"out{i}" if len(result["output_params"]) > 1 else "out"
+    for i, param in enumerate(result.output_params):
+        if param is None:
+            param["name"] = f"out{i}" if len(result.output_params) > 1 else "out"
 
         if "type" in param:
             param["type"] = type_to_string(param["type"])
@@ -112,18 +97,17 @@ def _unify_parser_results(
         result["exceptions"][error] = result["exceptions"][error].strip()
 
     # strip  and remove empty return
-    for op in result["output_params"]:
+    for op in result.output_params:
         if "description" not in op:
             op["description"] = None
 
         if op["description"]:
             op["description"] = op["description"].strip()
         if not op["description"]:
-            del op["description"]
+            op["description"] = None
 
     # strip summary
-    if "summary" in result:
-        result["summary"] = result["summary"].strip()
+    result.summary = result.summary.strip()
 
     return result
 
@@ -182,17 +166,13 @@ def parse_restructured_docstring(docstring: str) -> DocstringParserResult:
 
     sections = [" ".join(section) for section in sections]
 
-    result: DocstringParserResult = {
-        "input_params": [],
-        "output_params": [],
-        "exceptions": {},
-    }
+    result = DocstringParserResult()
 
     for section in sections:
         if section.startswith(":summary:"):
             s = section.replace(":summary:", "").strip()
             if s:
-                result["summary"] = s
+                result.summary = s
         elif section.startswith(":param"):
             psection = section.replace(":param", "").strip()
             param_match = re.match(r"([\w_]+):(.+)", psection)
@@ -212,9 +192,9 @@ def parse_restructured_docstring(docstring: str) -> DocstringParserResult:
             # default optional
             param["optional"] = False
 
-            result["input_params"].append(param)
+            result.input_params.append(param)
         elif section.startswith(":type"):
-            if len(result["input_params"]) == 0:
+            if len(result.input_params) == 0:
                 raise ValueError("Type section without parameter")
             psection = section.replace(":type", "").strip()
 
@@ -225,14 +205,14 @@ def parse_restructured_docstring(docstring: str) -> DocstringParserResult:
                 param_name = param_name.strip()
                 if not param_name:
                     # there is always one available otherwise it would have failes ~10 lines before:
-                    param_name = result["input_params"][-1]["name"]
+                    param_name = result.input_params[-1]["name"]
 
-                for _param in result["input_params"]:
+                for _param in result.input_params:
                     if _param["name"] == param_name:
                         param = _param
                         break
             else:
-                param = result["input_params"][-1]
+                param = result.input_params[-1]
             if param is None:
                 raise ValueError(
                     f"Could not find parameter for type section '{section}'"
@@ -269,12 +249,12 @@ def parse_restructured_docstring(docstring: str) -> DocstringParserResult:
         elif section.startswith(":return"):
             rsection = section.replace(":return:", "").strip()
             return_desc = {"description": rsection}
-            result["output_params"].append(return_desc)
+            result.output_params.append(return_desc)
         elif section.startswith(":rtype"):
-            if len(result["output_params"]) == 0:
+            if len(result.output_params) == 0:
                 raise ValueError("Type section without return")
             rsection = section.replace(":rtype:", "").strip()
-            result["output_params"][0]["type"] = string_to_type(rsection)
+            result.output_params[0]["type"] = string_to_type(rsection)
 
     return _unify_parser_results(result, docstring=original_)
 
@@ -334,11 +314,7 @@ def parse_google_docstring(docstring: str) -> DocstringParserResult:
     )  # check length for empty docstings
 
     # Prepare the result object
-    result: DocstringParserResult = {
-        "input_params": [],
-        "output_params": [],
-        "exceptions": {},
-    }
+    result = DocstringParserResult()
 
     # Define a variable to track the current section being parsed
     section = "Sum"
@@ -364,10 +340,10 @@ def parse_google_docstring(docstring: str) -> DocstringParserResult:
 
         else:
             if section == "Sum":
-                if "summary" in result:
-                    result["summary"] += " " + line
+                if result.summary:
+                    result.summary += " " + line
                 else:
-                    result["summary"] = line
+                    result.summary = line
             if section == "Args":
                 param_match_full = re.match(r"^(\w+) \(([\w\[\], ]+)\): (.+)$", line)
                 param_match_desc = re.match(r"^(\w+): (.+)$", line)
@@ -418,7 +394,7 @@ def parse_google_docstring(docstring: str) -> DocstringParserResult:
                 if paramtype:
                     param["type"] = string_to_type(paramtype)
                 del paramtype
-                result["input_params"].append(param)
+                result.input_params.append(param)
                 last_param = param
             elif section == "Returns":
                 return_match = re.match(r"([\w\[\], ]+): (.+)", line)
@@ -427,7 +403,7 @@ def parse_google_docstring(docstring: str) -> DocstringParserResult:
                         "type": string_to_type(return_match.group(1)),
                         "description": return_match.group(2),
                     }
-                    result["output_params"].append(return_param)
+                    result.output_params.append(return_param)
                     last_param = return_param
                 elif last_param:
                     last_param["description"] = (
@@ -463,7 +439,7 @@ def parse_numpy_docstring(docstring: str) -> DocstringParserResult:
     ]
     if len(section_starts) > 0:
         first_section_start = min(section_starts, key=lambda x: x[0])
-        res["summary"] = docstring[: first_section_start[0]].strip()
+        res.summary = docstring[: first_section_start[0]].strip()
 
     # Add end of string as the final section start
     section_starts.append((len(docstring), None))
@@ -507,22 +483,23 @@ def parse_numpy_docstring(docstring: str) -> DocstringParserResult:
                     stype = string_to_type(stype)
                 except Exception:
                     pass
-                current_param = FunctionInputParam(
+                if "optional" in param_match.group(2):
+                    paramclass = PositionalFunctionInputParam
+                else:
+                    paramclass = KeywordFunctionInputParam
+                current_param = paramclass(
                     name=param_match.group(1)
                     .replace("`", "")
                     .replace("'", "'")
                     .replace('"', "")
                     .strip(),
                     type=stype,
-                    description="",
-                    positional="optional" not in param_match.group(2),
-                    optional="optional" in param_match.group(2),
                 )
                 current_param_intendation = len(line) - len(line.lstrip())
                 current_intendation = current_param_intendation
             elif current_param:
                 # Continuation of a parameter description
-                current_param["description"] += line.strip() + " "
+                current_param.description += line.strip() + " "
                 current_intendation = len(line) - len(line.lstrip())
         if current_param:
             # Add the current parameter to the list
@@ -532,7 +509,7 @@ def parse_numpy_docstring(docstring: str) -> DocstringParserResult:
             else:
                 params.append(current_param)
         sections["Parameters"] = params
-        res["input_params"] = sections["Parameters"]
+        res.input_params = sections["Parameters"]
 
     # Process Returns section
     if "Returns" in sections:
@@ -579,14 +556,14 @@ def parse_numpy_docstring(docstring: str) -> DocstringParserResult:
                 params.append(current_param)
         sections["Returns"] = params
 
-        res["output_params"] = sections["Returns"]
+        res.output_params = sections["Returns"]
 
     for k, v in sections.items():
         if k not in [
             "Parameters",
             "Returns",
         ]:
-            res["summary"] += f"\n\n{k}\n----------\n{v}"
+            res.summary += f"\n\n{k}\n----------\n{v}"
 
     # Examples section is kept as is, or you could split it into individual examples
 

@@ -55,7 +55,8 @@ class DoctringExtractionTests:
             "original": self.BASIC_DOCSTRING,
         }
 
-        self.assertEqual(result, expected)
+        self.maxDiff = None
+        self.assertEqual(result.as_dict(), expected)
 
     def test_only_summary(self):
         result = self.get_parser()(self.JUST_SUMMARY)
@@ -67,7 +68,7 @@ class DoctringExtractionTests:
             "original": self.JUST_SUMMARY,
         }
 
-        self.assertEqual(result, expected)
+        self.assertEqual(result.as_dict(), expected)
 
     def test_only_params(self):
         result = self.get_parser()(self.ONLY_PARAM)
@@ -93,7 +94,7 @@ class DoctringExtractionTests:
             "exceptions": {},
             "original": self.ONLY_PARAM,
         }
-        self.assertEqual(result, expected)
+        self.assertEqual(result.as_dict(), expected)
 
     def test_only_return(self):
         result = self.get_parser()(self.ONLY_RETURN)
@@ -106,7 +107,8 @@ class DoctringExtractionTests:
             "exceptions": {},
             "original": self.ONLY_RETURN,
         }
-        self.assertEqual(result, expected)
+        print(result.output_params)
+        self.assertEqual(result.as_dict(), expected)
 
     def test_only_exceptions(self):
         result = self.get_parser()(self.ONLY_EXCEPT)
@@ -117,7 +119,7 @@ class DoctringExtractionTests:
             "exceptions": {"ValueError": "If value is wrong."},
             "original": self.ONLY_EXCEPT,
         }
-        self.assertEqual(result, expected)
+        self.assertEqual(result.as_dict(), expected)
 
     def test_undoc_exceptions(self):
         result = self.get_parser()(self.UNDOC_EXCEPT)
@@ -128,7 +130,7 @@ class DoctringExtractionTests:
             "exceptions": {"ValueError": "", "TypeError": ""},
             "original": self.UNDOC_EXCEPT,
         }
-        self.assertEqual(result, expected)
+        self.assertEqual(result.as_dict(), expected)
 
     def test_params_without_type(self):
         result = self.get_parser()(self.P_WO_TYPE)
@@ -152,7 +154,7 @@ class DoctringExtractionTests:
             "exceptions": {},
             "original": self.P_WO_TYPE,
         }
-        self.assertEqual(result, expected)
+        self.assertEqual(result.as_dict(), expected)
 
     def test_multiple_exceptions(self):
         result = self.get_parser()(self.MULTI_EXCEPT)
@@ -166,7 +168,7 @@ class DoctringExtractionTests:
             },
             "original": self.MULTI_EXCEPT,
         }
-        self.assertEqual(result, expected)
+        self.assertEqual(result.as_dict(), expected)
 
     def test_no_summary(self):
         result = self.get_parser()(self.NO_SUM)
@@ -188,8 +190,9 @@ class DoctringExtractionTests:
             "output_params": [],
             "exceptions": {},
             "original": self.NO_SUM,
+            "summary": "",
         }
-        self.assertEqual(result, expected)
+        self.assertEqual(result.as_dict(), expected)
 
     def test_missing_type_docstring(self):
         result = self.get_parser()(self.MISSING_TYPE_DOCSTRING)
@@ -205,8 +208,10 @@ class DoctringExtractionTests:
             "output_params": [],
             "exceptions": {},
             "original": self.MISSING_TYPE_DOCSTRING,
+            "summary": "",
         }
-        self.assertEqual(result, expected)
+
+        self.assertEqual(result.as_dict(), expected)
 
     def test_multiline_descriptions(self):
         result = self.get_parser()(self.MILTILINE_DESC)
@@ -241,23 +246,25 @@ class DoctringExtractionTests:
             "original": self.MILTILINE_DESC,
         }
 
-        self.assertEqual(result, expected)
+        self.assertEqual(result.as_dict(), expected)
 
     def test_only_param_name(self):
         result = self.get_parser()(self.ONLY_PARAM_NAME)
         expected = {
+            "exceptions": {},
             "input_params": [
                 {
                     "name": "a",
                     "positional": True,
                     "optional": False,
+                    "description": None,
                 },
             ],
             "output_params": [],
-            "exceptions": {},
             "original": self.ONLY_PARAM_NAME,
+            "summary": "",
         }
-        self.assertEqual(result, expected)
+        self.assertEqual(result.as_dict(), expected)
 
     def test_empty_docstring(self):
         expected = {
@@ -265,9 +272,10 @@ class DoctringExtractionTests:
             "output_params": [],
             "exceptions": {},
             "original": self.EMPTY_DOCSTRING,
+            "summary": "",
         }
         result = self.get_parser()(self.EMPTY_DOCSTRING)
-        self.assertEqual(result, expected)
+        self.assertEqual(result.as_dict(), expected)
 
     def test_only_param_type_only(self):
         result = self.get_parser()(self.ONLY_PARAM_TYPE)
@@ -278,13 +286,15 @@ class DoctringExtractionTests:
                     "type": "int",
                     "positional": True,
                     "optional": False,
+                    "description": None,
                 },
             ],
             "output_params": [],
             "exceptions": {},
             "original": self.ONLY_PARAM_TYPE,
+            "summary": "",
         }
-        self.assertEqual(result, expected)
+        self.assertEqual(result.as_dict(), expected)
 
     def test_optional_without_type(self):
         result = self.get_parser()(self.OPTIONAL_WO_TYPE)
@@ -295,13 +305,15 @@ class DoctringExtractionTests:
                     "default": "1",
                     "positional": False,
                     "optional": True,
+                    "description": None,
                 },
             ],
             "output_params": [],
             "exceptions": {},
             "original": self.OPTIONAL_WO_TYPE,
+            "summary": "",
         }
-        self.assertEqual(result, expected)
+        self.assertEqual(result.as_dict(), expected)
 
     def test_unknown_section(self):
         result = self.get_parser()(self.UNKNOWN_SECTION)
@@ -317,8 +329,9 @@ class DoctringExtractionTests:
             "output_params": [],
             "exceptions": {},
             "original": self.UNKNOWN_SECTION,
+            "summary": "",
         }
-        self.assertEqual(result, expected)
+        self.assertEqual(result.as_dict(), expected)
 
 
 class TestParseRestructuredDocstring(DoctringExtractionTests, unittest.TestCase):
@@ -603,8 +616,9 @@ class TestParseGoogleStyledDocstring(DoctringExtractionTests, unittest.TestCase)
             "output_params": [],
             "exceptions": {},
             "original": docstring,
+            "summary": "",
         }
-        self.assertEqual(res, expected)
+        self.assertEqual(res.as_dict(), expected)
 
     def test_returns_wo_param(self):
         docstring = """
@@ -618,8 +632,9 @@ class TestParseGoogleStyledDocstring(DoctringExtractionTests, unittest.TestCase)
             "output_params": [],
             "exceptions": {},
             "original": docstring,
+            "summary": "",
         }
-        self.assertEqual(res, expected)
+        self.assertEqual(res.as_dict(), expected)
 
 
 class TestAutoDetectRetring(DoctringExtractionTests, unittest.TestCase):
@@ -685,8 +700,18 @@ class TestUnifyParserResults(unittest.TestCase):
                 {"description": "A positional param."},
             ],
             "output_params": [
-                {"description": "Output 1.", "type": str},
-                {"description": "Output 2.", "type": float},
+                {
+                    "description": "Output 1.",
+                    "name": "out0",
+                    "type": str,
+                    "endpoints": None,
+                },
+                {
+                    "description": "Output 2.",
+                    "name": "out1",
+                    "type": float,
+                    "endpoints": None,
+                },
             ],
             "summary": "  Summary of function.  ",
             "exceptions": {"ValueError": "  An error occurred.  "},
@@ -711,14 +736,24 @@ class TestUnifyParserResults(unittest.TestCase):
                 },
             ],
             "output_params": [
-                {"description": "Output 1.", "name": "out0", "type": "str"},
-                {"description": "Output 2.", "name": "out1", "type": "float"},
+                {
+                    "description": "Output 1.",
+                    "name": "out0",
+                    "type": "str",
+                    "endpoints": None,
+                },
+                {
+                    "description": "Output 2.",
+                    "name": "out1",
+                    "type": "float",
+                    "endpoints": None,
+                },
             ],
             "summary": "Summary of function.",
             "exceptions": {"ValueError": "An error occurred."},
         }
 
-        self.assertEqual(unified_result, expected)
+        self.assertEqual(unified_result.as_dict(), expected)
 
     def test_missing_fields(self):
         from exposedfunctionality.function_parser.docstring_parser import (
@@ -746,9 +781,10 @@ class TestUnifyParserResults(unittest.TestCase):
             ],
             "output_params": [],
             "exceptions": {},
+            "summary": "",
         }
 
-        self.assertEqual(unified_result, expected)
+        self.assertEqual(unified_result.as_dict(), expected)
 
     def test_empty_or_missing_descriptions(self):
         from exposedfunctionality.function_parser.docstring_parser import (
@@ -761,17 +797,30 @@ class TestUnifyParserResults(unittest.TestCase):
         }
         docstring = "Docstring with empty descriptions."
         unified_result = _unify_parser_results(result, docstring)
+        self.maxDiff = None
 
         expected = {
             "original": docstring,
             "input_params": [
-                {"optional": False, "positional": True},
-                {"optional": False, "positional": True},
+                {
+                    "optional": False,
+                    "positional": True,
+                    "description": None,
+                },
+                {
+                    "optional": False,
+                    "positional": True,
+                    "description": None,
+                },
             ],
-            "output_params": [{"name": "out0"}, {"name": "out1"}],
+            "output_params": [
+                {"name": "out0", "description": None, "type": "Any"},
+                {"name": "out1", "description": None, "type": "Any"},
+            ],
             "exceptions": {},
+            "summary": "",
         }
 
-        self.assertEqual(unified_result, expected)
+        self.assertEqual(unified_result.as_dict(), expected)
 
     # Add more tests as needed to cover other scenarios.

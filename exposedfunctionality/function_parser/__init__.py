@@ -11,6 +11,8 @@ from .ser_types import (
     FunctionParamError,
     UnknownSectionError,
     TypeNotFoundError,
+    PositionalFunctionInputParam,
+    KeywordFunctionInputParam,
 )
 
 from .function_parser import (
@@ -41,4 +43,6 @@ __all__ = [
     "TypeNotFoundError",
     "add_type",
     "type_to_string",
+    "PositionalFunctionInputParam",
+    "KeywordFunctionInputParam",
 ]

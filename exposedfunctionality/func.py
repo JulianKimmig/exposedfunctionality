@@ -10,6 +10,8 @@ from .function_parser import (
     SerializedFunction,
     FunctionOutputParam,
     FunctionInputParam,
+    PositionalFunctionInputParam,
+    KeywordFunctionInputParam,
 )
 from typing import (
     ParamSpec,
@@ -70,22 +72,25 @@ def expose_method(
     """
 
     serfunc = function_method_parser(func)
+    outputs = [FunctionOutputParam.from_dict(o) for o in outputs or []]
+    inputs = [PositionalFunctionInputParam.from_dict(inp) for inp in inputs or []]
+
     if outputs is not None:
         for i, o in enumerate(outputs):
-            if i >= len(serfunc["output_params"]):
-                serfunc["output_params"].append(o)
+            if i >= len(serfunc.output_params):
+                serfunc.output_params.append(o)
             else:
-                serfunc["output_params"][i].update(o)
+                serfunc.output_params[i].update(o)
 
     if inputs is not None:
         for i, o in enumerate(inputs):
-            if i >= len(serfunc["input_params"]):
-                serfunc["input_params"].append(o)
+            if i >= len(serfunc.input_params):
+                serfunc.input_params.append(o)
             else:
-                serfunc["input_params"][i].update(o)
+                serfunc.input_params[i].merge(o)
 
     if name is not None:
-        serfunc["name"] = name
+        serfunc.name = name
     func: ExposedFunction[ReturnType] = func
     try:
         setattr(func, "_is_exposed_method", True)

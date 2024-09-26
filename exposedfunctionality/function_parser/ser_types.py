@@ -1,4 +1,4 @@
-from dataclasses import Field, dataclass, field, fields, is_dataclass
+from dataclasses import Field, dataclass, field, fields, is_dataclass, MISSING
 from typing import (
     Any,
     Callable,
@@ -8,10 +8,12 @@ from typing import (
     Protocol,
     Type,
     TypeVar,
+    Union,
     runtime_checkable,
 )
 from warnings import warn
 from collections.abc import KeysView, ItemsView, ValuesView
+from inspect import Parameter
 
 
 def dictmethod_deprecated(method: Callable) -> Callable:
@@ -69,17 +71,22 @@ def dataclass_to_dict(instance: T) -> Dict[str, Any]:
     Raises:
         TypeError: If the provided instance is not a dataclass.
     """
-    if not is_dataclass(instance):
-        raise TypeError(f"Expected dataclass instance, got {type(instance).__name__}")
+    if isinstance(instance, dict):
+        return {k: dataclass_to_dict(v) for k, v in instance.items()}
+    elif isinstance(instance, list):
+        return [dataclass_to_dict(v) for v in instance]
+    elif isinstance(instance, tuple):
+        return tuple(dataclass_to_dict(v) for v in instance)
+    elif isinstance(instance, set):
+        return {dataclass_to_dict(v) for v in instance}
+    elif is_dataclass(instance):
+        result = {}
+        for insfield in fields(instance):
+            value = getattr(instance, insfield.name)
+            result[insfield.name] = dataclass_to_dict(value)
+        return result
 
-    result = {}
-    for field in fields(instance):
-        value = getattr(instance, field.name)
-        if is_dataclass(value):
-            result[field.name] = dataclass_to_dict(value)
-        else:
-            result[field.name] = value
-    return result
+    return instance
 
 
 def dict_to_dataclass(data: Dict[str, Any], dataclass_type: Type[T]) -> T:
@@ -96,22 +103,36 @@ def dict_to_dataclass(data: Dict[str, Any], dataclass_type: Type[T]) -> T:
     Raises:
         TypeError: If the provided type is not a dataclass.
     """
+
+    if is_dataclass(data):
+        return data
+
     if not is_dataclass(dataclass_type):
         raise TypeError(f"Expected dataclass type, got {dataclass_type.__name__}")
 
     field_values = {}
-    for field in fields(dataclass_type):
-        if field.name in data:
-            value = data[field.name]
-            if is_dataclass(field.type):
-                field_values[field.name] = dict_to_dataclass(value, field.type)
+    for insfield in fields(dataclass_type):
+        if insfield.name in data:
+            value = data[insfield.name]
+            if is_dataclass(insfield.type):
+                field_values[insfield.name] = dict_to_dataclass(value, insfield.type)
+            # Handle list of dataclasses
+            elif (
+                hasattr(insfield.type, "__origin__")
+                and insfield.type.__origin__ is list
+                and is_dataclass(insfield.type.__args__[0])
+            ):
+                field_values[insfield.name] = [
+                    dict_to_dataclass(v, insfield.type.__args__[0]) for v in value
+                ]
             else:
-                field_values[field.name] = value
+                field_values[insfield.name] = value
         else:
-            if isinstance(field.default_factory, Field.default_factory):
-                field_values[field.name] = field.default_factory()
-            else:
-                field_values[field.name] = field.default
+            try:
+                field_values[insfield.name] = insfield.default_factory()
+            except TypeError:
+                if insfield.default != MISSING:
+                    field_values[insfield.name] = insfield.default
 
     return dataclass_type(**field_values)
 
@@ -294,17 +315,60 @@ class Endpoint(DictMixin):
     middleware: Optional[List[Callable[[Any], Any]]] = None
 
 
+class _FunctionInputParam(DictMixin):
+    """
+    Base methods for function input parameters.
+    """
+
+    @classmethod
+    def from_dict(
+        cls: Union[
+            Type["PositionalFunctionInputParam"], Type["KeywordFunctionInputParam"]
+        ],
+        data: Dict[str, Any],
+    ) -> Union["PositionalFunctionInputParam", "KeywordFunctionInputParam"]:
+        if isinstance(data, dict) and "positional" in data:
+            if data.get("positional", True):
+                return PositionalFunctionInputParam._from_dict(data)
+            else:
+                return KeywordFunctionInputParam._from_dict(data)
+        else:
+            try:
+                return KeywordFunctionInputParam._from_dict(data)
+            except Exception:
+                return PositionalFunctionInputParam._from_dict(data)
+
+    @classmethod
+    def _from_dict(
+        cls: Union[
+            Type["PositionalFunctionInputParam"], Type["KeywordFunctionInputParam"]
+        ],
+        data: Dict[str, Any],
+    ) -> Union["PositionalFunctionInputParam", "KeywordFunctionInputParam"]:
+
+        try:
+            return super()._from_dict(data)
+        except AttributeError:
+            return super().from_dict(data)
+
+    def merge(self, other):
+        od = other.as_dict() if not isinstance(other, dict) else other
+        if isinstance(self, KeywordFunctionInputParam) or isinstance(
+            other, KeywordFunctionInputParam
+        ):
+
+            return KeywordFunctionInputParam.from_dict({**self.as_dict(), **od})
+        return PositionalFunctionInputParam.from_dict({**self.as_dict(), **od})
+
+
 @dataclass
-class FunctionInputParam(DictMixin):
+class PositionalFunctionInputParam(_FunctionInputParam):
     """
     Type definition for a function parameter.
 
     Attributes:
         name (str): The name of the parameter, required.
         type (str): The type of the parameter, required.
-        positional (bool): Whether the parameter is positional, required.
-        default (Any): The default value of the parameter, optional.
-        optional (bool): Whether the parameter is optional, optional.
         description (str): The description of the parameter, optional.
         middleware (List[Callable[[Any], Any]]): A list of functions that can be
             used to transform the parameter value, optional.
@@ -313,13 +377,62 @@ class FunctionInputParam(DictMixin):
     """
 
     name: str
-    type: str
-    positional: bool
-    default: Any = None
-    optional: bool = False
+    type: Optional[Type] = None
     description: str = ""
     middleware: List[Callable[[Any], Any]] = field(default_factory=list)
     endpoints: Dict[str, Endpoint] = field(default_factory=dict)
+
+    def as_dict(self):
+        d = super().as_dict()
+        d["positional"] = True
+        d["optional"] = False
+
+        if not d["middleware"]:
+            del d["middleware"]
+
+        if not d["endpoints"]:
+            del d["endpoints"]
+
+        return d
+
+
+@dataclass
+class KeywordFunctionInputParam(_FunctionInputParam):
+    """
+    Type definition for a function parameter.
+
+    Attributes:
+        name (str): The name of the parameter, required.
+        type (str): The type of the parameter, required.
+        description (str): The description of the parameter, optional.
+        default (Any): The default value of the parameter, optional.
+        middleware (List[Callable[[Any], Any]]): A list of functions that can be
+            used to transform the parameter value, optional.
+        endpoints (Dict[str, Endpoint]): A dictionary of endpoints that can be
+            used to represent the parameter value in different contexts, optional.
+    """
+
+    name: str
+    type: Optional[Type] = None
+    description: str = ""
+    middleware: List[Callable[[Any], Any]] = field(default_factory=list)
+    endpoints: Dict[str, Endpoint] = field(default_factory=dict)
+    default: Optional[Any] = None
+
+    def as_dict(self):
+        d = super().as_dict()
+        d["positional"] = False
+        d["optional"] = True
+
+        if not d["middleware"]:
+            del d["middleware"]
+
+        if not d["endpoints"]:
+            del d["endpoints"]
+        return d
+
+
+FunctionInputParam = Union[PositionalFunctionInputParam, KeywordFunctionInputParam]
 
 
 @dataclass
@@ -335,7 +448,7 @@ class FunctionOutputParam(DictMixin):
     """
 
     name: str
-    type: str
+    type: str = "Any"
     description: Optional[str] = None
     endpoints: Optional[Dict[str, Endpoint]] = None
 
@@ -356,7 +469,7 @@ class DocstringParserResult(DictMixin):
     original: Optional[str] = None
     input_params: List[FunctionInputParam] = field(default_factory=list)
     output_params: List[FunctionOutputParam] = field(default_factory=list)
-    summary: Optional[str] = None
+    summary: str = ""
     exceptions: Dict[str, str] = field(default_factory=dict)
 
 

@@ -7,6 +7,7 @@ from exposedfunctionality.function_parser import (
     get_resolved_signature,
     FunctionParamError,
 )
+from inspect import Parameter
 
 
 class TestFunctionSerialization(unittest.TestCase):
@@ -56,12 +57,19 @@ class TestFunctionSerialization(unittest.TestCase):
         expected = {
             "name": "example_function",
             "input_params": [
-                {"name": "a", "type": "int", "positional": True},
+                {
+                    "name": "a",
+                    "type": "int",
+                    "positional": True,
+                    "description": None,
+                    "default": None,
+                },
                 {
                     "name": "b",
                     "type": "str",
                     "positional": False,
                     "default": "default",
+                    "description": None,
                 },
             ],
             "output_params": [
@@ -76,7 +84,7 @@ class TestFunctionSerialization(unittest.TestCase):
                 "original": "This is an example function.",
             },
         }
-        self.assertEqual(result, expected)
+        self.assertEqual(result.as_dict(), expected)
 
     def test_function_method_parser_typed(self):
 

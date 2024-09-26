@@ -4,6 +4,7 @@ from exposedfunctionality import (
     get_exposed_methods,
     assure_exposed_method,
     is_exposed_method,
+    SerializedFunction,
 )
 
 
@@ -43,15 +44,18 @@ class TestExposedMethodDecorator(unittest.TestCase):
         self.assertEqual(len(example_func.ef_funcmeta["output_params"]), 2)
         self.assertEqual(example_func.ef_funcmeta["input_params"][0]["name"], "param1")
         self.assertEqual(example_func.ef_funcmeta["output_params"][0]["name"], "result")
-
-        expected = function_method_parser(example_func)
+        self.maxDiff = None
+        expected = function_method_parser(example_func).as_dict()
         expected["name"] = "new_name"
         expected["input_params"][0].update(inputs[0])
         expected["output_params"][0].update(outputs[0])
         expected["input_params"].append(inputs[1])
         expected["output_params"].append(outputs[1])
 
-        self.assertEqual(example_func.ef_funcmeta, expected)
+        self.assertEqual(
+            example_func.ef_funcmeta.as_dict(),
+            SerializedFunction.from_dict(expected).as_dict(),
+        )
 
 
 class TestGetExposedMethods(unittest.TestCase):

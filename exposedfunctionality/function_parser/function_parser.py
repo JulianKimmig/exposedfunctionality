@@ -19,6 +19,8 @@ from .types import (
 
 from .ser_types import (
     FunctionInputParam,
+    KeywordFunctionInputParam,
+    PositionalFunctionInputParam,
     SerializedFunction,
     ReturnType,
     DocstringParserResult,
@@ -188,39 +190,38 @@ def function_method_parser(
             if p.kind == p.VAR_KEYWORD:
                 n = "**" + n
 
-            param_dict: FunctionInputParam = {
-                "name": n,
-                "default": p.default,
-                "type": th[i] if i in th else p.empty,
-                "positional": (
-                    p.kind == p.POSITIONAL_ONLY
-                    or p.kind == p.POSITIONAL_OR_KEYWORD
-                    or p.kind == p.VAR_POSITIONAL
-                )
-                and (p.default == p.empty),
-            }
+            if (
+                p.kind == p.POSITIONAL_ONLY
+                or p.kind == p.POSITIONAL_OR_KEYWORD
+                or p.kind == p.VAR_POSITIONAL
+            ):
+                defaultv = p.default if p.default is not p.empty else None
+                try:
+                    json.dumps(defaultv)
+                except TypeError as exe:
+                    try:
+                        defaultv = defaultv.__name__
+                    except AttributeError:
+                        defaultv = str(defaultv)
 
-            if param_dict["type"] is p.empty:
+                param_dict = KeywordFunctionInputParam(
+                    name=n,
+                    default=defaultv,
+                    type=th[i] if i in th else p.empty,
+                )
+            else:
+                param_dict = PositionalFunctionInputParam(
+                    name=n,
+                    type=th[i] if i in th else p.empty,
+                )
+
+            if param_dict.type is p.empty:
                 warnings.warn(
                     f"input {i} has no type type, using Any as type",
                 )
-                param_dict["type"] = Any
+                param_dict.type = Any
 
-            if param_dict["default"] is not p.empty:
-                try:
-                    json.dumps(param_dict["default"])
-                except TypeError as exe:
-                    try:
-                        param_dict["default"] = param_dict["default"].__name__
-                    except AttributeError:
-                        param_dict["default"] = str(param_dict["default"])
-                        # raise FunctionParamError(
-                        #     f"input {i} has unserializable default value '{param_dict['default']}'"
-                        # ) from exe
-            else:
-                del param_dict["default"]
-
-            param_dict["type"] = type_to_string(param_dict["type"])
+            param_dict.type = type_to_string(param_dict["type"])
 
             input_params.append(param_dict)
     except ValueError as exe:
@@ -297,10 +298,10 @@ def function_method_parser(
                     ):
                         output_params[i] = {**_dp, **output_params[i]}
 
-    ser: SerializedFunction = {
-        "name": base_func.__name__,
-        "input_params": input_params,
-        "output_params": output_params,
-        "docstring": parsed_ds,
-    }
+    ser = SerializedFunction(
+        name=base_func.__name__,
+        input_params=input_params,
+        output_params=output_params,
+        docstring=parsed_ds,
+    )
     return ser
