@@ -250,7 +250,11 @@ def parse_restructured_docstring(docstring: str) -> DocstringParserResult:
             else:
                 param["optional"] = False
             if _type:
-                param["type"] = string_to_type(_type)
+                try:
+                    param["type"] = string_to_type(_type)
+                except Exception:
+                    pass
+
         elif section.startswith(":raises"):
             rsection = section.replace(":raises", "").strip()
             if ":" in rsection:
@@ -274,7 +278,10 @@ def parse_restructured_docstring(docstring: str) -> DocstringParserResult:
             if len(result["output_params"]) == 0:
                 raise ValueError("Type section without return")
             rsection = section.replace(":rtype:", "").strip()
-            result["output_params"][0]["type"] = string_to_type(rsection)
+            try:
+                result["output_params"][0]["type"] = string_to_type(rsection)
+            except Exception:
+                pass
 
     return _unify_parser_results(result, docstring=original_)
 
@@ -420,7 +427,10 @@ def parse_google_docstring(docstring: str) -> DocstringParserResult:
                     "optional": optional,
                 }
                 if paramtype:
-                    param["type"] = string_to_type(paramtype)
+                    try:
+                        param["type"] = string_to_type(paramtype)
+                    except Exception:
+                        pass
                 del paramtype
                 result["input_params"].append(param)
                 last_param = param
@@ -428,9 +438,13 @@ def parse_google_docstring(docstring: str) -> DocstringParserResult:
                 return_match = re.match(r"([\w\[\], ]+): (.+)", line)
                 if return_match:
                     return_param = {
-                        "type": string_to_type(return_match.group(1)),
                         "description": return_match.group(2),
                     }
+                    try:
+                        return_param["type"] = string_to_type(return_match.group(1))
+                    except Exception:
+                        pass
+
                     result["output_params"].append(return_param)
                     last_param = return_param
                 elif last_param:
