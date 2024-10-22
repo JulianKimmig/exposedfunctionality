@@ -323,11 +323,11 @@ def parse_google_docstring(docstring: str) -> DocstringParserResult:
 
     diffs = [len(line) - len(lines[i]) for i, line in enumerate(pre_strip_lines)]
 
-    if (len(set(diffs))) > 2:
-        warnings.warn(
-            "More than two different initendation levels which might come from invalid formatted docstrings."
-            f"Docstring:\n{docstring}"
-        )
+    # if (len(set(diffs))) > 2:
+    #     warnings.warn(
+    #         "More than two different initendation levels which might come from invalid formatted docstrings."
+    #         f"Docstring:\n{docstring}"
+    #     )
 
     section_intentation = (
         min(diffs) if len(diffs) > 0 else 0
@@ -396,7 +396,11 @@ def parse_google_docstring(docstring: str) -> DocstringParserResult:
                     description = None
 
                 else:
-                    last_param["description"] += " " + line
+                    last_param["description"] = (
+                        last_param["description"] + " " + line
+                        if "description" in last_param
+                        else line
+                    )
                     continue
 
                 optional = False
