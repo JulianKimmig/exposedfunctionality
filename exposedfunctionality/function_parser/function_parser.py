@@ -202,7 +202,7 @@ def function_method_parser(
 
             if param_dict["type"] is p.empty:
                 warnings.warn(
-                    f"input {i} has no type type, using Any as type",
+                    f"input {i} of {base_func.__name__} has no type type, using Any as type",
                 )
                 param_dict["type"] = Any
 
