@@ -127,7 +127,7 @@ class ExposedValue:
 
         self.default = default
         self._jskwargs = json.dumps(kwargs)
-        self._dataname = self.name + "__data"
+        self._dataname = f"_{self.name}__data"
 
     def get_object_data(self, instance: Any) -> ExposedValueData:
         """
@@ -239,6 +239,9 @@ def add_exposed_value(
     >>> a = A()
     >>> add_exposed_value(a, "attr", 10, int)
     >>> b = A()
+    >>> b.attr
+    AttributeError: 'A' object has no attribute 'attr'
+    >>> b=a.__class__()
     >>> b.attr
     10
     >>> b.attr = 20
