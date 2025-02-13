@@ -32,6 +32,34 @@ class TestExposedValue(unittest.TestCase):
         with self.assertRaises(TypeError):
             ExposedValue("name", "10.1", type_=int)
 
+    def test_example(self):
+        from exposedfunctionality import add_exposed_value
+
+        class A:
+            pass
+
+        a = A()
+        add_exposed_value(a, "attr", 10, int)
+        b = A()
+        self.assertFalse(hasattr(b, "attr"))
+        b = a.__class__()
+        self.assertEqual(b.attr, 10)
+        b.attr = 20
+        self.assertEqual(b.attr, 20)
+        self.assertEqual(a.attr, 10)
+
+        c = a.__class__()
+        self.assertEqual(c.attr, 10)
+        add_exposed_value(c, "attr2", 20, int)
+        c.attr = 30
+        self.assertEqual(
+            {k: v for k, v in c.__dict__.items() if not k.startswith("_")},
+            {"attr": 30, "attr2": 20},
+        )
+        self.assertEqual(
+            {k: v for k, v in a.__dict__.items() if not k.startswith("_")}, {"attr": 10}
+        )
+
     def test_get(self):
         """Test getting the value using the descriptor."""
         from exposedfunctionality import ExposedValue

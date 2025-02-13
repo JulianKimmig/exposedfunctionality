@@ -201,8 +201,17 @@ def function_method_parser(
             }
 
             if param_dict["type"] is p.empty:
+                module = None
+                try:
+                    module = base_func.__module__
+                except Exception:
+                    pass
+                if module is not None:
+                    funcdesc = f"{module}.{base_func.__name__}"
+                else:
+                    funcdesc = f"{base_func.__name__}"
                 warnings.warn(
-                    f"input {i} of {base_func.__name__} has no type type, using Any as type",
+                    f"input {i} of {funcdesc} has no type type, using Any as type",
                 )
                 param_dict["type"] = Any
 
