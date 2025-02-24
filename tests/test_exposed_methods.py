@@ -26,8 +26,9 @@ class TestExposedMethodDecorator(unittest.TestCase):
         """Test that exposed_method correctly adds or updates input and output params."""
         from exposedfunctionality.function_parser import function_method_parser
 
+        self.maxDiff = None
         inputs = [
-            {"name": "param1", "type": "int", "positional": True},
+            {"name": "myparam", "type": "int", "positional": True},
             {"name": "unknown_input", "type": "str"},
         ]
         outputs = [
@@ -41,15 +42,26 @@ class TestExposedMethodDecorator(unittest.TestCase):
 
         self.assertEqual(len(example_func.ef_funcmeta["input_params"]), 2)
         self.assertEqual(len(example_func.ef_funcmeta["output_params"]), 2)
-        self.assertEqual(example_func.ef_funcmeta["input_params"][0]["name"], "param1")
+        self.assertEqual(example_func.ef_funcmeta["input_params"][0]["name"], "myparam")
         self.assertEqual(example_func.ef_funcmeta["output_params"][0]["name"], "result")
 
         expected = function_method_parser(example_func)
         expected["name"] = "new_name"
+        expected["_name"] = "example_func"
         expected["input_params"][0].update(inputs[0])
         expected["output_params"][0].update(outputs[0])
+        expected["output_params"][0]["_name"] = "out"
         expected["input_params"].append(inputs[1])
         expected["output_params"].append(outputs[1])
+
+        expected["input_params"][0]["_name"] = "param1"
+
+        self.assertEqual(
+            example_func.ef_funcmeta["output_params"][0], expected["output_params"][0]
+        )
+        self.assertEqual(
+            example_func.ef_funcmeta["input_params"][0], expected["input_params"][0]
+        )
 
         self.assertEqual(example_func.ef_funcmeta, expected)
 

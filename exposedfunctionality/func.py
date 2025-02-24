@@ -47,6 +47,34 @@ ExposedMethodKwargsKeys: List[ExposedMethodKwargsKeysValues] = [
     "outputs",
 ]
 
+
+def nested_update(d: dict, u: dict, keep_original="_") -> dict:
+    """
+    Update a dictionary with another dictionary, recursively.
+
+    Args:
+        d (dict): Dictionary to be updated.
+        u (dict): Dictionary to update with.
+
+    Returns:
+        dict: Updated dictionary.
+    """
+
+    if keep_original and isinstance(keep_original, str):
+        keep_original = keep_original
+    else:
+        keep_original = None
+
+    for k, v in list(u.items()):
+        if isinstance(v, dict) and isinstance(d.get(k, {}), dict):
+            d[k] = nested_update(d.get(k, {}), v, keep_original=keep_original)
+        else:
+            if keep_original and k in d and d[k] != v:
+                d[keep_original + k] = d[k]
+            d[k] = v
+    return d
+
+
 P = ParamSpec("P")
 
 
@@ -75,17 +103,19 @@ def expose_method(
             if i >= len(serfunc["output_params"]):
                 serfunc["output_params"].append(o)
             else:
-                serfunc["output_params"][i].update(o)
+                nested_update(serfunc["output_params"][i], o)
 
     if inputs is not None:
         for i, o in enumerate(inputs):
             if i >= len(serfunc["input_params"]):
                 serfunc["input_params"].append(o)
             else:
-                serfunc["input_params"][i].update(o)
+                nested_update(serfunc["input_params"][i], o)
 
-    if name is not None:
+    if name is not None and serfunc.get("name") != name:
+        serfunc["_name"] = serfunc["name"]
         serfunc["name"] = name
+
     func: ExposedFunction[ReturnType] = func
     try:
         setattr(func, "_is_exposed_method", True)
