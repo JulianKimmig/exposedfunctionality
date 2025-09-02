@@ -108,6 +108,34 @@ class TestFunctionSerialization(unittest.TestCase):
         }
         self.assertEqual(result, expected)
 
+    def test_function_method_parser_pep604_union(self):
+
+        # Test function serialization with PEP 604 unions (|)
+        def example_function(a: int | float, b: str | None = None) -> dict[str, int | float]:
+            return {"a": a}
+
+        result = function_method_parser(example_function)
+        expected = {
+            "name": "example_function",
+            "input_params": [
+                {"name": "a", "type": "Union[int, float]", "positional": True},
+                {
+                    "name": "b",
+                    "type": "Union[str, None]",
+                    "positional": False,
+                    "default": None,
+                },
+            ],
+            "output_params": [
+                {
+                    "name": "out",
+                    "type": "Dict[str, Union[int, float]]",
+                }
+            ],
+            "docstring": None,
+        }
+        self.assertEqual(result, expected)
+
     def test_function_method_parser_custom_return_type(self):
 
         def exp_func(a: int) -> SerializedFunction:  # pylint: disable=unused-argument
