@@ -6,8 +6,8 @@ from typing import (
     Optional,
     Protocol,
     TypeVar,
-    TypedDict,
 )
+from typing_extensions import TypedDict
 from pydantic import BaseModel, ConfigDict
 
 

@@ -24,7 +24,7 @@ except Exception:  # pragma: no cover - older Python
 import collections
 from .ser_types import TypeNotFoundError
 
-from typing import TypedDict
+from typing_extensions import TypedDict
 
 
 try:

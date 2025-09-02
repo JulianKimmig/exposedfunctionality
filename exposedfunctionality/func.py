@@ -21,8 +21,8 @@ from typing import (
     List,
     Optional,
     Literal,
-    TypedDict,
 )
+from typing_extensions import TypedDict
 from .function_parser import (
     ExposedFunction,
     ReturnType,
