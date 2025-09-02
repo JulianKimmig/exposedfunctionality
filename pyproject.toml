@@ -1,6 +1,6 @@
 [project]
 name = "exposedfunctionality"
-version = "0.3.20"
+version = "0.4.0"
 description = "tool to expose functionalities to multiple tools"
 authors = [
     {name = "Julian Kimmig", email = "julian.kimmig@linkdlab.de"},

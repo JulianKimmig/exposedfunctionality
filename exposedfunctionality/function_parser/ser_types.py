@@ -145,3 +145,68 @@ class TypeNotFoundError(Exception):
     def __init__(self, type_name: str):
         self.type_name = type_name
         super().__init__(f"Type '{type_name}' not found.")
+
+
+# Lightweight metadata containers for typing.Annotated usage
+
+class InputMeta:
+    """Metadata for input parameters used with typing.Annotated.
+
+    Example:
+        def fn(a: Annotated[int, InputMeta(description="count of items")]): ...
+
+    Only non-semantic metadata is honored (e.g., description, middleware, endpoints).
+    Callable semantics such as defaults/positionality are not changed by metadata.
+    """
+
+    def __init__(
+        self,
+        *,
+        # core fields
+        name: Optional[str] = None,
+        type: Optional[Any] = None,  # may be a string or a typing type
+        default: Any = None,
+        optional: Optional[bool] = None,
+        positional: Optional[bool] = None,
+        # metadata
+        description: Optional[str] = None,
+        middleware: Optional[List[Callable[[Any], Any]]] = None,
+        endpoints: Optional[Dict[str, Endpoint]] = None,
+    ) -> None:
+        self.name = name
+        self.type = type
+        self.default = default
+        self.optional = optional
+        self.positional = positional
+        self.description = description
+        self.middleware = middleware
+        self.endpoints = endpoints
+
+
+class OutputMeta:
+    """Metadata for output parameters used with typing.Annotated.
+
+    Example:
+        def fn() -> Annotated[int, OutputMeta(description="result value")]: ...
+
+    For tuple returns, annotate each element:
+        def fn() -> tuple[
+            Annotated[int, OutputMeta(description="first")],
+            Annotated[str, OutputMeta(description="second")],
+        ]: ...
+    """
+
+    def __init__(
+        self,
+        *,
+        # core fields
+        name: Optional[str] = None,
+        type: Optional[Any] = None,  # may be a string or a typing type
+        # metadata
+        description: Optional[str] = None,
+        endpoints: Optional[Dict[str, Endpoint]] = None,
+    ) -> None:
+        self.name = name
+        self.type = type
+        self.description = description
+        self.endpoints = endpoints

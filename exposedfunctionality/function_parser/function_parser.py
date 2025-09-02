@@ -6,7 +6,7 @@ import inspect
 from functools import partial
 import json
 from .docstring_parser import parse_docstring
-from typing import get_type_hints, Callable
+from typing import get_type_hints, Callable, get_origin, get_args, Annotated
 from .types import (
     type_to_string,
     Optional,
@@ -22,6 +22,8 @@ from .ser_types import (
     SerializedFunction,
     ReturnType,
     DocstringParserResult,
+    InputMeta,
+    OutputMeta,
 )
 
 
@@ -174,12 +176,66 @@ def function_method_parser(
     if docs is not None:
         parsed_ds = parse_docstring(docs)
 
+    # Collect annotated metadata containers so they exist across branches
+    annotated_input_meta: Dict[str, Dict[str, Any]] = {}
+
     try:
-        th = get_type_hints(base_func)
+        # include_extras=True keeps typing.Annotated metadata
+        th = get_type_hints(base_func, include_extras=True)
     except TypeError as exe:
         th = {}
     try:
         sig, base_func = get_resolved_signature(func)
+
+        def _extract_meta_from_annotation(annotation, *, is_input: bool):
+            """Return (base_type, meta_dict) from possibly Annotated annotation."""
+            origin = get_origin(annotation)
+            if origin is Annotated:
+                args = list(get_args(annotation))
+                base = args[0]
+                metas = args[1:]
+                md: Dict[str, Any] = {}
+                for m in metas:
+                    # Supported: InputMeta/OutputMeta instances or plain dicts
+                    if is_input and isinstance(m, InputMeta):
+                        # full set of fields
+                        if m.name is not None:
+                            md["name"] = m.name
+                        if m.type is not None:
+                            md["type"] = m.type
+                        if m.default is not None:
+                            md["default"] = m.default
+                        if m.optional is not None:
+                            md["optional"] = m.optional
+                        if m.positional is not None:
+                            md["positional"] = m.positional
+                        if m.description is not None:
+                            md["description"] = m.description
+                        if m.middleware is not None:
+                            md["middleware"] = m.middleware
+                        if m.endpoints is not None:
+                            md["endpoints"] = m.endpoints
+                    elif (not is_input) and isinstance(m, OutputMeta):
+                        if m.name is not None:
+                            md["name"] = m.name
+                        if m.type is not None:
+                            md["type"] = m.type
+                        if m.description is not None:
+                            md["description"] = m.description
+                        if m.endpoints is not None:
+                            md["endpoints"] = m.endpoints
+                    elif isinstance(m, dict):
+                        # Filter to allowed keys
+                        keys = (
+                            {"name", "type", "default", "optional", "positional", "description", "middleware", "endpoints"}
+                            if is_input
+                            else {"name", "type", "description", "endpoints"}
+                        )
+                        for k in keys:
+                            if k in m:
+                                md[k] = m[k]
+                return base, md
+            return annotation, {}
 
         for i, p in sig.parameters.items():
             n = i
@@ -215,6 +271,16 @@ def function_method_parser(
                 )
                 param_dict["type"] = Any
 
+            # Extract Annotated metadata for inputs before serializing type
+            if param_dict["type"] is not p.empty:
+                base_type, meta = _extract_meta_from_annotation(
+                    param_dict["type"], is_input=True
+                )
+                param_dict["type"] = base_type
+                # collect all meta for later final application
+                if meta:
+                    annotated_input_meta[n] = meta
+
             if param_dict["default"] is not p.empty:
                 try:
                     json.dumps(param_dict["default"])
@@ -237,18 +303,33 @@ def function_method_parser(
             input_params = parsed_ds["input_params"]
 
     output_params = []
+    annotated_return_meta: Dict[str, Any] = {}
+    annotated_return_tuple_meta: List[Dict[str, Any]] = []
     if "return" in th:
+        # Extract Annotated metadata for outputs
+        rtype, rmeta = (lambda ann: _extract_meta_from_annotation(ann, is_input=False))(
+            th["return"]
+        )
+        if rmeta:
+            annotated_return_meta = rmeta
         # chek if return type is None Type
-        if th["return"] == NoneType:
+        if rtype == NoneType:
             output_params = []
-        elif getattr(th["return"], "__origin__", None) is tuple:
+        elif getattr(rtype, "__origin__", None) is tuple:
             output_params = [
-                {"name": f"out{i}", "type": type_to_string(t)}
-                for i, t in enumerate(th["return"].__args__)
+                {"name": f"out{i}", "type": type_to_string(_t)}
+                for i, _t in enumerate(get_args(rtype))
             ]
+            # per-element Annotated support: collect for later
+            for i, t in enumerate(get_args(rtype)):
+                _bt, _m = _extract_meta_from_annotation(t, is_input=False)
+                if _bt is not t:
+                    output_params[i]["type"] = type_to_string(_bt)
+                annotated_return_tuple_meta.append(_m)
 
         else:
-            output_params = [{"name": "out", "type": type_to_string(th["return"])}]
+            output_params = [{"name": "out", "type": type_to_string(rtype)}]
+            # single return meta will be applied later
 
     if parsed_ds is not None:
         # update input params
@@ -278,13 +359,13 @@ def function_method_parser(
                 ) and "type" in parsed_ip:
                     p["type"] = parsed_ip["type"]
 
-                # a default value makes the parameter optional by default and the parameter non-positional
-                if "default" in p:
-                    p["optional"] = True
-                    p["positional"] = False
-                else:
-                    p["optional"] = False
-                    p["positional"] = True
+                # Infer optional/positional unless explicitly provided via Annotated
+                if "optional" not in p:
+                    if annotated_input_meta.get(p["name"], {}).get("optional") is None:
+                        p["optional"] = ("default" in p)
+                if "positional" not in p:
+                    if annotated_input_meta.get(p["name"], {}).get("positional") is None:
+                        p["positional"] = not ("default" in p)
                 # possitional is always set
                 # if (
                 #    "positional" not in p or p["positional"] is None
@@ -305,6 +386,55 @@ def function_method_parser(
                         p["name"] == "out0" and _dp["name"] == "out"
                     ):
                         output_params[i] = {**_dp, **output_params[i]}
+
+    # Final application of Annotated metadata (highest precedence)
+    def _apply_meta_to_input(p: Dict[str, Any], meta: Dict[str, Any]):
+        # type override
+        if "type" in meta:
+            p["type"] = type_to_string(meta["type"]) if meta["type"] is not None else p["type"]
+        # default handling like earlier (serialize if needed)
+        if "default" in meta:
+            dv = meta["default"]
+            try:
+                json.dumps(dv)
+            except TypeError:
+                try:
+                    dv = dv.__name__  # type: ignore[attr-defined]
+                except AttributeError:
+                    dv = str(dv)
+            p["default"] = dv
+        # simple assignments
+        for k in ("optional", "positional", "description", "middleware", "endpoints"):
+            if k in meta:
+                p[k] = meta[k]
+        # rename last to avoid affecting lookups
+        if "name" in meta and meta["name"] and meta["name"] != p.get("name"):
+            p["_name"] = p["name"]
+            p["name"] = meta["name"]
+
+    for p in input_params:
+        if p["name"] in annotated_input_meta:
+            _apply_meta_to_input(p, annotated_input_meta[p["name"]])
+
+    def _apply_meta_to_output(p: Dict[str, Any], meta: Dict[str, Any]):
+        if not meta:
+            return
+        if "type" in meta and meta["type"] is not None:
+            p["type"] = type_to_string(meta["type"]) if meta["type"] is not None else p["type"]
+        for k in ("description", "endpoints"):
+            if k in meta:
+                p[k] = meta[k]
+        if "name" in meta and meta["name"] and meta["name"] != p.get("name"):
+            p["_name"] = p["name"]
+            p["name"] = meta["name"]
+
+    if output_params:
+        if len(output_params) == 1:
+            _apply_meta_to_output(output_params[0], annotated_return_meta)
+        elif len(output_params) > 1 and annotated_return_tuple_meta:
+            for i, m in enumerate(annotated_return_tuple_meta):
+                if i < len(output_params):
+                    _apply_meta_to_output(output_params[i], m)
 
     ser: SerializedFunction = {
         "name": base_func.__name__,
