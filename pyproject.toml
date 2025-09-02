@@ -1,29 +1,33 @@
-[tool.poetry]
+[project]
 name = "exposedfunctionality"
 version = "0.3.20"
 description = "tool to expose functionalities to multiple tools"
-authors = ["Julian Kimmig <julian.kimmig@linkdlab.de>"]
-license = "MIT"
+authors = [
+    {name = "Julian Kimmig", email = "julian.kimmig@linkdlab.de"},
+]
+license = {text = "MIT"}
 readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "typing-extensions",
+    "pyyaml",
+    
+]
 
-[tool.poetry.urls]
-homepage  = "https://github.com/JulianKimmig/exposedfunctionality"
-source  = "https://github.com/JulianKimmig/exposedfunctionality"
-tracker  = "https://github.com/JulianKimmig/exposedfunctionality/issues"
-download = "https://pypi.org/project/exposedfunctionality/#files"
+[project.urls]
+Homepage = "https://github.com/JulianKimmig/exposedfunctionality"
+Source = "https://github.com/JulianKimmig/exposedfunctionality"
+Tracker = "https://github.com/JulianKimmig/exposedfunctionality/issues"
+Download = "https://pypi.org/project/exposedfunctionality/#files"
 
-
-[tool.poetry.dependencies]
-python = ">=3.10"
-typing-extensions = "*"
-pyyaml = "*"
-
-
-[tool.poetry.group.dev.dependencies]
-pytest = "*"
-numpy = "*"
-pre-commit = "*"
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "numpy",
+    "pre-commit",
+    "tomli; python_version < '3.11'",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
