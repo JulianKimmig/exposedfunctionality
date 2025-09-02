@@ -104,7 +104,6 @@ class TestStringToType(unittest.TestCase):
 
 class TestAddType(unittest.TestCase):
     def setUp(self):
-
         self.initial_types = _TYPE_GETTER.copy()
         self.initial_string_types = _STRING_GETTER.copy()
 
@@ -115,7 +114,6 @@ class TestAddType(unittest.TestCase):
         _STRING_GETTER.update(self.initial_string_types)
 
     def test_add_new_type(self):
-
         class NewType:
             pass
 
@@ -124,7 +122,6 @@ class TestAddType(unittest.TestCase):
         self.assertEqual(_TYPE_GETTER["NewType"], NewType)
 
     def test_adding_duplicate_type_does_not_override(self):
-
         class DuplicateType:
             pass
 
@@ -136,7 +133,6 @@ class TestAddType(unittest.TestCase):
 
 class TestGeneral(unittest.TestCase):
     def test_STRING_GETTER_populated_correctly(self):
-
         for k, v in _TYPE_GETTER.items():
             self.assertIn(v, _STRING_GETTER)
 
@@ -163,7 +159,6 @@ class TestTypeToString(unittest.TestCase):
         # ... add other builtin types as needed
 
     def test_custom_types_to_string(self):
-
         class CustomType_T:
             pass
 
@@ -172,7 +167,6 @@ class TestTypeToString(unittest.TestCase):
         self.assertEqual(type_to_string(CustomType_T), "CustomType" + t)
 
     def test_unknown_type_raises_error(self):
-
         # Create an object instance without __name__ and __module__ attributes
         UnknownType = type("UnknownType", (), {})()
         with self.assertRaises(TypeNotFoundError):
@@ -185,7 +179,6 @@ class TestTypeToString(unittest.TestCase):
             _ = type_to_string(UnknownType)
 
     def test_typing_types(self):
-
         for i in range(2):
             self.assertIn(
                 type_to_string(Optional[int]), ["Union[int, None]", "Optional[int]"]
@@ -237,7 +230,6 @@ class TestTypeToString(unittest.TestCase):
             type_to_string(UnknownType)
 
     def test_ser_types(self):
-
         self.assertEqual(serialize_type(int), "int")
         self.assertEqual(serialize_type(str), "str")
         self.assertIn(
@@ -360,7 +352,6 @@ class TestTypeToString(unittest.TestCase):
         )
 
     def test_incorrect_generic_syntax(self):
-
         with self.assertRaises(TypeNotFoundError):
             string_to_type("List[int, str]")  # List should have only one argument
 
@@ -389,7 +380,6 @@ class TestTypeToString(unittest.TestCase):
         self.assertEqual(string_to_type("CircularTypeB"), CircularTypeB)
 
     def test_anonymous_type(self):
-
         # Dynamically create a type without a name
         AnonymousType = type("", (), {})
 
@@ -399,7 +389,6 @@ class TestTypeToString(unittest.TestCase):
             type_to_string(AnonymousType)
 
     def test_literal_edge_cases(self):
-
         self.assertEqual(
             string_to_type("Literal[1, 'test', True, None]"),
             Literal[1, "test", True, None],
@@ -407,7 +396,6 @@ class TestTypeToString(unittest.TestCase):
         self.assertEqual(string_to_type("Literal[]"), Literal[()])  # An empty Literal
 
     def test_mixed_enum_serialization(self):
-
         class InvalidEnum(Enum):
             FIRST = 1
             SECOND = "two"
@@ -423,7 +411,6 @@ class TestTypeToString(unittest.TestCase):
         )
 
     def test_type_aliases(self):
-
         AliasType = List[int]
 
         self.assertEqual(type_to_string(AliasType), "List[int]")

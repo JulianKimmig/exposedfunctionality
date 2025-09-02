@@ -17,6 +17,7 @@ from typing import (
     get_origin,
     get_args,
 )
+
 try:  # Python 3.10+
     from types import UnionType as PyUnionType  # type: ignore
 except Exception:  # pragma: no cover - older Python
@@ -264,7 +265,9 @@ def type_to_string(t: Union[type, str]):
                 return f"Dict[{key_type}, {value_type}]"
             elif origin in [tuple, Tuple]:
                 return f"Tuple[{', '.join([type_to_string(subtype) for subtype in get_args(t)])}]"
-            elif (origin is Union) or (PyUnionType is not None and origin is PyUnionType):
+            elif (origin is Union) or (
+                PyUnionType is not None and origin is PyUnionType
+            ):
                 return f"Union[{', '.join([type_to_string(subtype) for subtype in get_args(t)])}]"
             elif origin in [Type, type]:
                 args = get_args(t)
