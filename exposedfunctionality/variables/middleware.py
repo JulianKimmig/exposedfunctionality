@@ -2,6 +2,7 @@
 Middleware functions for variables exposed to the user
 
 """
+
 from typing import (
     Optional,
     Union,

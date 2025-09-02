@@ -6,8 +6,8 @@ from typing import (
     Optional,
     Protocol,
     TypeVar,
-    TypedDict,
 )
+from typing_extensions import TypedDict
 from pydantic import BaseModel, ConfigDict
 
 
@@ -149,6 +149,7 @@ class TypeNotFoundError(Exception):
 
 
 # Lightweight metadata containers for typing.Annotated usage
+
 
 class InputMeta(BaseModel):
     model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)

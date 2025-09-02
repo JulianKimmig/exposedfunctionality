@@ -14,10 +14,16 @@ class TestAnnotatedMetadata(unittest.TestCase):
             pass
 
         ser = function_method_parser(fn)
+        self.maxDiff = None
         self.assertEqual(
             ser["input_params"],
             [
-                {"name": "a", "type": "int", "positional": True, "description": "Number of items"},
+                {
+                    "name": "a",
+                    "type": "int",
+                    "positional": True,
+                    "description": "Number of items",
+                },
                 {
                     "name": "b",
                     "type": "Union[str, None]",
@@ -29,7 +35,9 @@ class TestAnnotatedMetadata(unittest.TestCase):
         )
 
     def test_output_annotated_single(self):
-        def fn() -> Annotated[int, OutputMeta(description="value", name="res", type=float)]:
+        def fn() -> Annotated[
+            int, OutputMeta(description="value", name="res", type=float)
+        ]:
             return 1
 
         ser = function_method_parser(fn)
@@ -49,8 +57,18 @@ class TestAnnotatedMetadata(unittest.TestCase):
         self.assertEqual(
             ser["output_params"],
             [
-                {"name": "left", "_name": "out0", "type": "int", "description": "first"},
-                {"name": "right", "_name": "out1", "type": "int", "description": "second"},
+                {
+                    "name": "left",
+                    "_name": "out0",
+                    "type": "int",
+                    "description": "first",
+                },
+                {
+                    "name": "right",
+                    "_name": "out1",
+                    "type": "int",
+                    "description": "second",
+                },
             ],
         )
 

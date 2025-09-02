@@ -21,8 +21,8 @@ from typing import (
     List,
     Optional,
     Literal,
-    TypedDict,
 )
+from typing_extensions import TypedDict
 from .function_parser import (
     ExposedFunction,
     ReturnType,
@@ -192,8 +192,7 @@ def is_exposed_method(
     obj: Union[Callable[P, ReturnType], ExposedFunction[ReturnType]],
 ) -> bool:
     return (
-        hasattr(obj, "_is_exposed_method")
-        and obj._is_exposed_method  # pylint: disable=W0212
+        hasattr(obj, "_is_exposed_method") and obj._is_exposed_method  # pylint: disable=W0212
     )
 
 

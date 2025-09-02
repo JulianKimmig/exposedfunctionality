@@ -227,7 +227,16 @@ def function_method_parser(
                     elif isinstance(m, dict):
                         # Filter to allowed keys
                         keys = (
-                            {"name", "type", "default", "optional", "positional", "description", "middleware", "endpoints"}
+                            {
+                                "name",
+                                "type",
+                                "default",
+                                "optional",
+                                "positional",
+                                "description",
+                                "middleware",
+                                "endpoints",
+                            }
                             if is_input
                             else {"name", "type", "description", "endpoints"}
                         )
@@ -358,9 +367,12 @@ def function_method_parser(
                 # Infer optional/positional unless explicitly provided via Annotated
                 if "optional" not in p:
                     if annotated_input_meta.get(p["name"], {}).get("optional") is None:
-                        p["optional"] = ("default" in p)
+                        p["optional"] = "default" in p
                 if "positional" not in p:
-                    if annotated_input_meta.get(p["name"], {}).get("positional") is None:
+                    if (
+                        annotated_input_meta.get(p["name"], {}).get("positional")
+                        is None
+                    ):
                         p["positional"] = not ("default" in p)
                 # possitional is always set
                 # if (
@@ -387,7 +399,9 @@ def function_method_parser(
     def _apply_meta_to_input(p: Dict[str, Any], meta: Dict[str, Any]):
         # type override
         if "type" in meta:
-            p["type"] = type_to_string(meta["type"]) if meta["type"] is not None else p["type"]
+            p["type"] = (
+                type_to_string(meta["type"]) if meta["type"] is not None else p["type"]
+            )
         # default handling like earlier (serialize if needed)
         if "default" in meta:
             dv = meta["default"]
@@ -416,7 +430,9 @@ def function_method_parser(
         if not meta:
             return
         if "type" in meta and meta["type"] is not None:
-            p["type"] = type_to_string(meta["type"]) if meta["type"] is not None else p["type"]
+            p["type"] = (
+                type_to_string(meta["type"]) if meta["type"] is not None else p["type"]
+            )
         for k in ("description", "endpoints"):
             if k in meta:
                 p[k] = meta[k]

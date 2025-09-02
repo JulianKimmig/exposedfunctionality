@@ -1,13 +1,13 @@
 [project]
 name = "exposedfunctionality"
-version = "0.4.0"
+version = "1.0.0"
 description = "tool to expose functionalities to multiple tools"
 authors = [
     {name = "Julian Kimmig", email = "julian.kimmig@linkdlab.de"},
 ]
 license = {text = "MIT"}
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "typing-extensions",
     "pyyaml",
