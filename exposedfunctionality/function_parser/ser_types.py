@@ -8,6 +8,7 @@ from typing import (
     TypeVar,
     TypedDict,
 )
+from pydantic import BaseModel, ConfigDict
 
 
 class Endpoint(TypedDict):
@@ -149,7 +150,8 @@ class TypeNotFoundError(Exception):
 
 # Lightweight metadata containers for typing.Annotated usage
 
-class InputMeta:
+class InputMeta(BaseModel):
+    model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)
     """Metadata for input parameters used with typing.Annotated.
 
     Example:
@@ -159,31 +161,20 @@ class InputMeta:
     Callable semantics such as defaults/positionality are not changed by metadata.
     """
 
-    def __init__(
-        self,
-        *,
-        # core fields
-        name: Optional[str] = None,
-        type: Optional[Any] = None,  # may be a string or a typing type
-        default: Any = None,
-        optional: Optional[bool] = None,
-        positional: Optional[bool] = None,
-        # metadata
-        description: Optional[str] = None,
-        middleware: Optional[List[Callable[[Any], Any]]] = None,
-        endpoints: Optional[Dict[str, Endpoint]] = None,
-    ) -> None:
-        self.name = name
-        self.type = type
-        self.default = default
-        self.optional = optional
-        self.positional = positional
-        self.description = description
-        self.middleware = middleware
-        self.endpoints = endpoints
+    # core fields
+    name: Optional[str] = None
+    type: Optional[Any] = None  # may be a string or typing type
+    default: Any = None
+    optional: Optional[bool] = None
+    positional: Optional[bool] = None
+    # metadata
+    description: Optional[str] = None
+    middleware: Optional[List[Callable[[Any], Any]]] = None
+    endpoints: Optional[Dict[str, Endpoint]] = None
 
 
-class OutputMeta:
+class OutputMeta(BaseModel):
+    model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)
     """Metadata for output parameters used with typing.Annotated.
 
     Example:
@@ -196,17 +187,9 @@ class OutputMeta:
         ]: ...
     """
 
-    def __init__(
-        self,
-        *,
-        # core fields
-        name: Optional[str] = None,
-        type: Optional[Any] = None,  # may be a string or a typing type
-        # metadata
-        description: Optional[str] = None,
-        endpoints: Optional[Dict[str, Endpoint]] = None,
-    ) -> None:
-        self.name = name
-        self.type = type
-        self.description = description
-        self.endpoints = endpoints
+    # core fields
+    name: Optional[str] = None
+    type: Optional[Any] = None  # may be a string or typing type
+    # metadata
+    description: Optional[str] = None
+    endpoints: Optional[Dict[str, Endpoint]] = None

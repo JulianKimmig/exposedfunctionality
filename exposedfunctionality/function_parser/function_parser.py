@@ -316,15 +316,11 @@ def function_method_parser(
         if rtype == NoneType:
             output_params = []
         elif getattr(rtype, "__origin__", None) is tuple:
-            output_params = [
-                {"name": f"out{i}", "type": type_to_string(_t)}
-                for i, _t in enumerate(get_args(rtype))
-            ]
-            # per-element Annotated support: collect for later
+            output_params = []
+            annotated_return_tuple_meta = []
             for i, t in enumerate(get_args(rtype)):
                 _bt, _m = _extract_meta_from_annotation(t, is_input=False)
-                if _bt is not t:
-                    output_params[i]["type"] = type_to_string(_bt)
+                output_params.append({"name": f"out{i}", "type": type_to_string(_bt)})
                 annotated_return_tuple_meta.append(_m)
 
         else:

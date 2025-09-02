@@ -11,6 +11,7 @@ requires-python = ">=3.10"
 dependencies = [
     "typing-extensions",
     "pyyaml",
+    "pydantic>=2.0",
     
 ]
 
