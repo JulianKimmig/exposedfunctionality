@@ -15,7 +15,6 @@ class TestFunctionSerialization(unittest.TestCase):
         return super().setUp()
 
     def test_get_resolved_signature(self):
-
         # Test basic function
         def func(a, b=1, c=2):  # pylint: disable=unused-argument
             pass
@@ -29,7 +28,6 @@ class TestFunctionSerialization(unittest.TestCase):
         self.assertEqual(str(sig), "(b=1, c=2)")
 
     def test_get_resolved_signature_method(self):
-
         # Test class methods
         class TestClass:
             def method(self, x, y=0):
@@ -46,7 +44,6 @@ class TestFunctionSerialization(unittest.TestCase):
         self.assertEqual(str(sig), "(x, y=0)")
 
     def test_function_method_parser_simple(self):
-
         # Test basic function serialization
         def example_function(a: int, b: str = "default") -> Tuple[int, str]:
             """This is an example function."""
@@ -79,7 +76,6 @@ class TestFunctionSerialization(unittest.TestCase):
         self.assertEqual(result, expected)
 
     def test_function_method_parser_typed(self):
-
         # Test basic function serialization
         def example_function(
             a: Union[int, float], b: Optional[str] = None
@@ -108,8 +104,36 @@ class TestFunctionSerialization(unittest.TestCase):
         }
         self.assertEqual(result, expected)
 
-    def test_function_method_parser_custom_return_type(self):
+    def test_function_method_parser_pep604_union(self):
+        # Test function serialization with PEP 604 unions (|)
+        def example_function(
+            a: int | float, b: str | None = None
+        ) -> dict[str, int | float]:
+            return {"a": a}
 
+        result = function_method_parser(example_function)
+        expected = {
+            "name": "example_function",
+            "input_params": [
+                {"name": "a", "type": "Union[int, float]", "positional": True},
+                {
+                    "name": "b",
+                    "type": "Union[str, None]",
+                    "positional": False,
+                    "default": None,
+                },
+            ],
+            "output_params": [
+                {
+                    "name": "out",
+                    "type": "Dict[str, Union[int, float]]",
+                }
+            ],
+            "docstring": None,
+        }
+        self.assertEqual(result, expected)
+
+    def test_function_method_parser_custom_return_type(self):
         def exp_func(a: int) -> SerializedFunction:  # pylint: disable=unused-argument
             pass
 
@@ -128,7 +152,6 @@ class TestFunctionSerialization(unittest.TestCase):
         self.assertEqual(result, expected)
 
     def test_function_method_parser_no_hint(self):
-
         # Test function with no type hints
         def no_hints(a, b):  # pylint: disable=unused-argument
             pass
@@ -146,7 +169,6 @@ class TestFunctionSerialization(unittest.TestCase):
         self.assertEqual(result, expected)
 
     def test_function_method_parser_return_None(self):
-
         # Test function with return type of None
         def returns_none() -> None:
             pass
@@ -161,7 +183,6 @@ class TestFunctionSerialization(unittest.TestCase):
         self.assertEqual(result, expected)
 
     def test_function_method_parser_unserializable_default(self):
-
         # Test unserializable default
         def unserializable_default(
             a={"unserializable": set()},
@@ -186,7 +207,6 @@ class TestFunctionSerialization(unittest.TestCase):
         self.assertEqual(ser, exp)
 
     def test_function_method_parser_param_from_docstring(self):
-
         # Test function with type hint from docstring
         def docstring_type(a, b=1) -> int:  # pylint: disable=unused-argument
             """Args:
@@ -252,7 +272,6 @@ class TestFunctionSerialization(unittest.TestCase):
         self.assertEqual(result, expected)
 
     def test_function_method_parser_param_from_docstring_with_diff(self):
-
         # Test function with type hint from docstring
         def docstring_type(a: int, b=0):  # pylint: disable=unused-argument
             """
