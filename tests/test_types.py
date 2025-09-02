@@ -210,6 +210,11 @@ class TestTypeToString(unittest.TestCase):
                 "Literal[1, 2, 'hello world']",
             )
 
+    def test_pep604_unions_to_string(self):
+        # PEP 604 union operator should stringify as Union[...] consistently
+        self.assertEqual(type_to_string(int | str), "Union[int, str]")
+        self.assertIn(type_to_string(str | None), ["Union[str, None]", "Optional[str]"])
+
     def test_custom_type(self):
         """
         Test conversion of a custom type to string representation.

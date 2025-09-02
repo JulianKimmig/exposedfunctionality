@@ -20,8 +20,9 @@ from .function_parser.custom_wrapper import (
 )
 from .function_parser import serialize_type
 from .function_parser.types import add_type, SerializedType
+from .function_parser import InputMeta, OutputMeta
 
-__version__ = "0.3.20"
+__version__ = "0.4.0"
 
 __all__ = [
     "function_parser",
@@ -35,6 +36,8 @@ __all__ = [
     "assure_exposed_method",
     "FunctionInputParam",
     "FunctionOutputParam",
+    "InputMeta",
+    "OutputMeta",
     "is_exposed_method",
     "expose_method",
     "func",

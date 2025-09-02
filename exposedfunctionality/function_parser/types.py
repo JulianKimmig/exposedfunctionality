@@ -17,6 +17,10 @@ from typing import (
     get_origin,
     get_args,
 )
+try:  # Python 3.10+
+    from types import UnionType as PyUnionType  # type: ignore
+except Exception:  # pragma: no cover - older Python
+    PyUnionType = None  # type: ignore
 import collections
 from .ser_types import TypeNotFoundError
 
@@ -243,32 +247,34 @@ def type_to_string(t: Union[type, str]):
         return t
 
     def get_by_typing(t):
-        origin = getattr(t, "__origin__", None)
-        if origin:  #
-            # Optional[T] ist just Tuple[T,None] in disguise
-            # if origin is Optional:
-            #    return f"Optional[{type_to_string(t.__args__[0])}]"
+        # Prefer typing.get_origin to support PEP 604 unions and PEP 585 generics
+        origin = get_origin(t)
+        if origin is None:
+            origin = getattr(t, "__origin__", None)
+        if origin:
+            # Optional[T] is just Union[T, None] in disguise; handled via Union
             if origin in [list, List]:
-                return f"List[{type_to_string(t.__args__[0])}]"
+                return f"List[{type_to_string(get_args(t)[0])}]"
             if origin in [Sequence, collections.abc.Sequence]:
-                return f"Sequence[{type_to_string(t.__args__[0])}]"
+                return f"Sequence[{type_to_string(get_args(t)[0])}]"
             elif origin in [dict, Dict]:
-                key_type = type_to_string(t.__args__[0])
-                value_type = type_to_string(t.__args__[1])
+                args = get_args(t)
+                key_type = type_to_string(args[0])
+                value_type = type_to_string(args[1])
                 return f"Dict[{key_type}, {value_type}]"
             elif origin in [tuple, Tuple]:
-                return f"Tuple[{', '.join([type_to_string(subtype) for subtype in t.__args__])}]"
-            elif origin is Union:
-                return f"Union[{', '.join([type_to_string(subtype) for subtype in t.__args__])}]"
+                return f"Tuple[{', '.join([type_to_string(subtype) for subtype in get_args(t)])}]"
+            elif (origin is Union) or (PyUnionType is not None and origin is PyUnionType):
+                return f"Union[{', '.join([type_to_string(subtype) for subtype in get_args(t)])}]"
             elif origin in [Type, type]:
-                if hasattr(t, "__args__"):
-                    return f"Type[{type_to_string(t.__args__[0])}]"
-                # else: already handeld by the simple "Type" entry
-                #    return "Type"
+                args = get_args(t)
+                if args:
+                    return f"Type[{type_to_string(args[0])}]"
+                # else: already handled by the simple "Type" entry
             elif origin in [set, Set]:
-                return f"Set[{type_to_string(t.__args__[0])}]"
+                return f"Set[{type_to_string(get_args(t)[0])}]"
             elif origin is Literal:
-                return f"Literal[{str(tuple(t.__args__))[1:-1]}]"
+                return f"Literal[{str(tuple(get_args(t)))[1:-1]}]"
 
     #                return f"Literal[{', '.join(str(lit) for lit in t.__args__)}]"
 
