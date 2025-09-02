@@ -14,6 +14,7 @@ class TestAnnotatedMetadata(unittest.TestCase):
             pass
 
         ser = function_method_parser(fn)
+        self.maxDiff = None
         self.assertEqual(
             ser["input_params"],
             [
