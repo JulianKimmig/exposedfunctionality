@@ -188,7 +188,11 @@ def function_method_parser(
         sig, base_func = get_resolved_signature(func)
 
         def _extract_meta_from_annotation(annotation, *, is_input: bool):
-            """Return (base_type, meta_dict) from possibly Annotated annotation."""
+            """Return (base_type, meta_dict) from possibly Annotated annotation.
+
+            Note: TypedDicts do not support isinstance/issubclass checks at runtime.
+            Treat any mapping-like metadata as plain dicts and filter for known keys.
+            """
             origin = get_origin(annotation)
             if origin is Annotated:
                 args = list(get_args(annotation))
@@ -196,37 +200,9 @@ def function_method_parser(
                 metas = args[1:]
                 md: Dict[str, Any] = {}
                 for m in metas:
-                    # Supported: InputMeta/OutputMeta instances or plain dicts
-                    if is_input and isinstance(m, InputMeta):
-                        # full set of fields
-                        if m.name is not None:
-                            md["name"] = m.name
-                        if m.type is not None:
-                            md["type"] = m.type
-                        if m.default is not None:
-                            md["default"] = m.default
-                        if m.optional is not None:
-                            md["optional"] = m.optional
-                        if m.positional is not None:
-                            md["positional"] = m.positional
-                        if m.description is not None:
-                            md["description"] = m.description
-                        if m.middleware is not None:
-                            md["middleware"] = m.middleware
-                        if m.endpoints is not None:
-                            md["endpoints"] = m.endpoints
-                    elif (not is_input) and isinstance(m, OutputMeta):
-                        if m.name is not None:
-                            md["name"] = m.name
-                        if m.type is not None:
-                            md["type"] = m.type
-                        if m.description is not None:
-                            md["description"] = m.description
-                        if m.endpoints is not None:
-                            md["endpoints"] = m.endpoints
-                    elif isinstance(m, dict):
-                        # Filter to allowed keys
-                        keys = (
+                    # Accept TypedDict instances (they are just dicts at runtime) and plain dicts
+                    if isinstance(m, dict):
+                        allowed_keys = (
                             {
                                 "name",
                                 "type",
@@ -240,7 +216,7 @@ def function_method_parser(
                             if is_input
                             else {"name", "type", "description", "endpoints"}
                         )
-                        for k in keys:
+                        for k in allowed_keys:
                             if k in m:
                                 md[k] = m[k]
                 return base, md

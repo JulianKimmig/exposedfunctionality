@@ -234,7 +234,7 @@ def string_to_type(
         raise TypeNotFoundError(string)
 
 
-def type_to_string(t: Union[type, str]):
+def type_to_string(t: Union[type, str], *, _sort_union_args: bool = False):
     """
     Convert a class object to a string.
 
@@ -255,27 +255,43 @@ def type_to_string(t: Union[type, str]):
         if origin:
             # Optional[T] is just Union[T, None] in disguise; handled via Union
             if origin in [list, List]:
-                return f"List[{type_to_string(get_args(t)[0])}]"
+                return f"List[{type_to_string(get_args(t)[0], _sort_union_args=True)}]"
             if origin in [Sequence, collections.abc.Sequence]:
-                return f"Sequence[{type_to_string(get_args(t)[0])}]"
+                return (
+                    f"Sequence[{type_to_string(get_args(t)[0], _sort_union_args=True)}]"
+                )
             elif origin in [dict, Dict]:
                 args = get_args(t)
-                key_type = type_to_string(args[0])
-                value_type = type_to_string(args[1])
+                key_type = type_to_string(args[0], _sort_union_args=True)
+                value_type = type_to_string(args[1], _sort_union_args=True)
                 return f"Dict[{key_type}, {value_type}]"
             elif origin in [tuple, Tuple]:
-                return f"Tuple[{', '.join([type_to_string(subtype) for subtype in get_args(t)])}]"
+                return f"Tuple[{', '.join([type_to_string(subtype, _sort_union_args=True) for subtype in get_args(t)])}]"
             elif (origin is Union) or (
                 PyUnionType is not None and origin is PyUnionType
             ):
-                return f"Union[{', '.join([type_to_string(subtype) for subtype in get_args(t)])}]"
+                parts = [
+                    type_to_string(subtype, _sort_union_args=False)
+                    for subtype in get_args(t)
+                ]
+                if _sort_union_args:
+                    # Ensure deterministic ordering inside generics; keep None last
+                    none_last = []
+                    rest = []
+                    for p in parts:
+                        if p == "None":
+                            none_last.append(p)
+                        else:
+                            rest.append(p)
+                    parts = sorted(rest) + none_last
+                return f"Union[{', '.join(parts)}]"
             elif origin in [Type, type]:
                 args = get_args(t)
                 if args:
-                    return f"Type[{type_to_string(args[0])}]"
+                    return f"Type[{type_to_string(args[0], _sort_union_args=True)}]"
                 # else: already handled by the simple "Type" entry
             elif origin in [set, Set]:
-                return f"Set[{type_to_string(get_args(t)[0])}]"
+                return f"Set[{type_to_string(get_args(t)[0], _sort_union_args=True)}]"
             elif origin is Literal:
                 return f"Literal[{str(tuple(get_args(t)))[1:-1]}]"
 
@@ -383,7 +399,9 @@ class TypeOf(TypedDict):
 SerializedType = Union[str, AllOf, AnyOf, ArrayOf, DictOf, EnumOf, TypeOf]
 
 
-def serialize_type(type_: type) -> SerializedType:
+def serialize_type(
+    type_: type, *, _prefer_canonical_union_order: bool = False
+) -> SerializedType:
     origin = get_origin(type_)
     args = get_args(type_)
 
@@ -393,7 +411,12 @@ def serialize_type(type_: type) -> SerializedType:
             hasNone = True
             args = [arg for arg in args if arg is not None and arg is not NoneType]
 
-        subtypes = [serialize_type(subtype) for subtype in args]
+        subtypes = [
+            serialize_type(
+                subtype, _prefer_canonical_union_order=_prefer_canonical_union_order
+            )
+            for subtype in args
+        ]
 
         if hasNone:
             for st in subtypes:
@@ -409,6 +432,17 @@ def serialize_type(type_: type) -> SerializedType:
                 subtypes.append(nonestr)
         if len(subtypes) == 1:
             return subtypes[0]
+        # Deduplicate while preserving order; optionally canonicalize inside generics
+        if _prefer_canonical_union_order:
+            # Move "None" to the end and sort the rest by their string form for stability
+            none_last = []
+            rest = []
+            for st in subtypes:
+                if str(st) == "None":
+                    none_last.append(st)
+                else:
+                    rest.append(st)
+            subtypes = sorted(rest, key=lambda s: str(s)) + none_last
         seen = set()
         seen_add = seen.add
         return AnyOf(
@@ -426,13 +460,13 @@ def serialize_type(type_: type) -> SerializedType:
         return ArrayOf(
             type="array",
             uniqueItems=False,
-            items=serialize_type(args[0]),
+            items=serialize_type(args[0], _prefer_canonical_union_order=True),
         )
     elif origin in [Dict, dict]:
         return DictOf(
             type="object",
-            keys=serialize_type(args[0]),
-            values=serialize_type(args[1]),
+            keys=serialize_type(args[0], _prefer_canonical_union_order=True),
+            values=serialize_type(args[1], _prefer_canonical_union_order=True),
         )
     elif origin is Literal:
         typestrings = [item for item in args]
@@ -451,12 +485,14 @@ def serialize_type(type_: type) -> SerializedType:
         return ArrayOf(
             type="array",
             uniqueItems=True,
-            items=serialize_type(args[0]),
+            items=serialize_type(args[0], _prefer_canonical_union_order=True),
         )
     elif origin in [Type, type]:
         return TypeOf(
             type="type",
-            value=serialize_type(args[0] if args else Any),
+            value=serialize_type(
+                args[0] if args else Any, _prefer_canonical_union_order=True
+            ),
         )
 
     if (isinstance(type_, type) and issubclass(type_, Enum)) or isinstance(type_, Enum):
