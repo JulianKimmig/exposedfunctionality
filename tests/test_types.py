@@ -7,7 +7,6 @@ import unittest
 from unittest.mock import patch, Mock
 from typing import List, Dict, Tuple, Set, Literal, Optional, Union, Any, Type
 from time import time
-from typing import Set, Literal
 from exposedfunctionality.function_parser.types import (
     _TYPE_GETTER,
     _STRING_GETTER,

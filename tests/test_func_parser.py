@@ -5,7 +5,6 @@ from exposedfunctionality.function_parser import (
     SerializedFunction,
     function_method_parser,
     get_resolved_signature,
-    FunctionParamError,
 )
 
 

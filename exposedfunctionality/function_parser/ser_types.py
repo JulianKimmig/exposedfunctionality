@@ -56,7 +56,8 @@ class FunctionOutputParam(TypedDict):
         name (str): The name of the parameter, required.
         type (str): The type of the parameter, required.
         description (Optional[str]): The description of the parameter, optional.
-        endpoints (Optional[Dict[str, Endpoint]]): A dictionary of endpoints that can be used to represent the parameter value in different contexts, optional.
+        endpoints (Optional[Dict[str, Endpoint]]): A dictionary of endpoints that can be used to represent
+            the parameter value in different contexts, optional.
     """
 
     name: str
@@ -119,7 +120,8 @@ class ExposedFunction(Protocol[ReturnType]):
     ef_funcmeta: SerializedFunction
     _is_exposed_method: bool
 
-    def __call__(self, *args: Any, **kwargs: Any) -> ReturnType: ...
+    def __call__(self, *args: Any, **kwargs: Any) -> ReturnType:
+        pass
 
 
 class FunctionParamError(Exception):
