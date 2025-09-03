@@ -8,7 +8,6 @@ from typing import (
     TypeVar,
 )
 from typing_extensions import TypedDict
-from pydantic import BaseModel, ConfigDict
 
 
 class Endpoint(TypedDict):
@@ -151,46 +150,7 @@ class TypeNotFoundError(Exception):
 # Lightweight metadata containers for typing.Annotated usage
 
 
-class InputMeta(BaseModel):
-    model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)
-    """Metadata for input parameters used with typing.Annotated.
-
-    Example:
-        def fn(a: Annotated[int, InputMeta(description="count of items")]): ...
-
-    Only non-semantic metadata is honored (e.g., description, middleware, endpoints).
-    Callable semantics such as defaults/positionality are not changed by metadata.
-    """
-
-    # core fields
-    name: Optional[str] = None
-    type: Optional[Any] = None  # may be a string or typing type
-    default: Any = None
-    optional: Optional[bool] = None
-    positional: Optional[bool] = None
-    # metadata
-    description: Optional[str] = None
-    middleware: Optional[List[Callable[[Any], Any]]] = None
-    endpoints: Optional[Dict[str, Endpoint]] = None
+InputMeta = FunctionInputParam
 
 
-class OutputMeta(BaseModel):
-    model_config = ConfigDict(extra="allow", arbitrary_types_allowed=True)
-    """Metadata for output parameters used with typing.Annotated.
-
-    Example:
-        def fn() -> Annotated[int, OutputMeta(description="result value")]: ...
-
-    For tuple returns, annotate each element:
-        def fn() -> tuple[
-            Annotated[int, OutputMeta(description="first")],
-            Annotated[str, OutputMeta(description="second")],
-        ]: ...
-    """
-
-    # core fields
-    name: Optional[str] = None
-    type: Optional[Any] = None  # may be a string or typing type
-    # metadata
-    description: Optional[str] = None
-    endpoints: Optional[Dict[str, Endpoint]] = None
+OutputMeta = FunctionOutputParam

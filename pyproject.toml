@@ -11,8 +11,6 @@ requires-python = ">=3.11"
 dependencies = [
     "typing-extensions",
     "pyyaml",
-    "pydantic>=2.0",
-    
 ]
 
 [project.urls]
@@ -24,7 +22,7 @@ Download = "https://pypi.org/project/exposedfunctionality/#files"
 [project.optional-dependencies]
 dev = [
     "pytest",
-    "numpy",
+    "numpy<2",
     "pre-commit",
     "tomli; python_version < '3.11'",
 ]

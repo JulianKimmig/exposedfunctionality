@@ -126,7 +126,7 @@ class TestFunctionSerialization(unittest.TestCase):
             "output_params": [
                 {
                     "name": "out",
-                    "type": "Dict[str, Union[int, float]]",
+                    "type": "Dict[str, Union[float, int]]",
                 }
             ],
             "docstring": None,
