@@ -1,18 +1,14 @@
 import unittest
 from exposedfunctionality import (
-    exposed_method,
-    get_exposed_methods,
     assure_exposed_method,
     is_exposed_method,
 )
 import numpy as np
 
-np.datetime_data
 from exposedfunctionality.function_parser.docstring_parser import (
     select_extraction_function,
     parse_numpy_docstring,
 )
-from pprint import pprint
 
 
 class TestExposedMethodDecorator(unittest.TestCase):
