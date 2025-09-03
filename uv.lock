@@ -31,7 +31,7 @@ wheels = [
 
 [[package]]
 name = "exposedfunctionality"
-version = "1.0.0"
+version = "1.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "pyyaml" },
@@ -47,7 +47,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "numpy", marker = "extra == 'dev'", specifier = "<2" },
+    { name = "numpy", marker = "extra == 'dev'" },
     { name = "pre-commit", marker = "extra == 'dev'" },
     { name = "pytest", marker = "extra == 'dev'" },
     { name = "pyyaml" },

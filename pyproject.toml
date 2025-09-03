@@ -22,7 +22,7 @@ Download = "https://pypi.org/project/exposedfunctionality/#files"
 [project.optional-dependencies]
 dev = [
     "pytest",
-    "numpy<2",
+    "numpy",
     "pre-commit",
     "tomli; python_version < '3.11'",
 ]
