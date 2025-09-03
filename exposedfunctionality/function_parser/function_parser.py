@@ -22,8 +22,6 @@ from .ser_types import (
     SerializedFunction,
     ReturnType,
     DocstringParserResult,
-    InputMeta,
-    OutputMeta,
 )
 
 
@@ -182,7 +180,7 @@ def function_method_parser(
     try:
         # include_extras=True keeps typing.Annotated metadata
         th = get_type_hints(base_func, include_extras=True)
-    except TypeError as exe:
+    except TypeError:
         th = {}
     try:
         sig, base_func = get_resolved_signature(func)
@@ -202,23 +200,8 @@ def function_method_parser(
                 for m in metas:
                     # Accept TypedDict instances (they are just dicts at runtime) and plain dicts
                     if isinstance(m, dict):
-                        allowed_keys = (
-                            {
-                                "name",
-                                "type",
-                                "default",
-                                "optional",
-                                "positional",
-                                "description",
-                                "middleware",
-                                "endpoints",
-                            }
-                            if is_input
-                            else {"name", "type", "description", "endpoints"}
-                        )
-                        for k in allowed_keys:
-                            if k in m:
-                                md[k] = m[k]
+                        for k in m:
+                            md[k] = m[k]
                 return base, md
             return annotation, {}
 
@@ -269,7 +252,7 @@ def function_method_parser(
             if param_dict["default"] is not p.empty:
                 try:
                     json.dumps(param_dict["default"])
-                except TypeError as exe:
+                except TypeError:
                     try:
                         param_dict["default"] = param_dict["default"].__name__
                     except AttributeError:
@@ -283,7 +266,7 @@ def function_method_parser(
             param_dict["type"] = type_to_string(param_dict["type"])
 
             input_params.append(param_dict)
-    except ValueError as exe:
+    except ValueError:
         if parsed_ds is not None:
             input_params = parsed_ds["input_params"]
 
@@ -349,7 +332,7 @@ def function_method_parser(
                         annotated_input_meta.get(p["name"], {}).get("positional")
                         is None
                     ):
-                        p["positional"] = not ("default" in p)
+                        p["positional"] = "default" not in p
                 # possitional is always set
                 # if (
                 #    "positional" not in p or p["positional"] is None
@@ -398,6 +381,10 @@ def function_method_parser(
             p["_name"] = p["name"]
             p["name"] = meta["name"]
 
+        for k in meta:
+            if k not in p:
+                p[k] = meta[k]
+
     for p in input_params:
         if p["name"] in annotated_input_meta:
             _apply_meta_to_input(p, annotated_input_meta[p["name"]])
@@ -415,6 +402,10 @@ def function_method_parser(
         if "name" in meta and meta["name"] and meta["name"] != p.get("name"):
             p["_name"] = p["name"]
             p["name"] = meta["name"]
+
+        for k in meta:
+            if k not in p:
+                p[k] = meta[k]
 
     if output_params:
         if len(output_params) == 1:
