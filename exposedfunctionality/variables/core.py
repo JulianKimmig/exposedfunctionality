@@ -60,9 +60,9 @@ class ExposedValueData:
 
 ValueChecker = Callable[[Any, ExposedValueData], Any]
 """Type for value checkers that can be added to ExposedValue instances.
-Value checkers are called when the value of an ExposedValue is set, and can be used to modify the value or raise an error.
-The value checker should take two arguments: the new value and the ExposedValueData object, and return the new value.
-
+Value checkers are called when the value of an ExposedValue is set, and can be used to modify the value
+or raise an error. The value checker should take two arguments: the new value and the ExposedValueData
+object, and return the new value.
 """
 
 
@@ -96,10 +96,10 @@ class ExposedValue:
         Args:
             name (str): Name of the attribute.
             default (Any): Default value for the attribute.
-            type_ (Optional[Type], optional): Expected type of the attribute.
-                If not provided, the type of the default value is used. If None is provided, no type checking is performed.
-            valuechecker (Optional[List[ValueChecker]], optional): List of value checkers to be called when the value is set.
-                Can be used to modify the value or raise an error. Defaults to None.
+            type_ (Optional[Type], optional): Expected type of the attribute. If not provided,
+                the type of the default value is used. If None is provided, no type checking is performed.
+            valuechecker (Optional[List[ValueChecker]], optional): List of value checkers to be called
+                when the value is set. Can be used to modify the value or raise an error. Defaults to None.
             **kwargs: Additional keyword arguments, must be json serializable.
         """
         self.name = name

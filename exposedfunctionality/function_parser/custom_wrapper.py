@@ -276,7 +276,8 @@ def controlled_unwrap(
                                                                unwrapping should stop at that function. Default is None.
 
     Returns:
-        Any: The unwrapped function, or a tuple of the unwrapped function and the memo dictionary if `return_memo` is True.
+        Any: The unwrapped function, or a tuple of the unwrapped function and the memo dictionary if
+            `return_memo` is True.
 
     Raises:
         ValueError: If a wrapper loop is detected (i.e., a function is found more than once in the chain).

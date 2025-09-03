@@ -266,7 +266,11 @@ def type_to_string(t: Union[type, str], *, _sort_union_args: bool = False):
                 value_type = type_to_string(args[1], _sort_union_args=True)
                 return f"Dict[{key_type}, {value_type}]"
             elif origin in [tuple, Tuple]:
-                return f"Tuple[{', '.join([type_to_string(subtype, _sort_union_args=True) for subtype in get_args(t)])}]"
+                tupletypes = [
+                    type_to_string(subtype, _sort_union_args=True)
+                    for subtype in get_args(t)
+                ]
+                return f"Tuple[{', '.join(tupletypes)}]"
             elif (origin is Union) or (
                 PyUnionType is not None and origin is PyUnionType
             ):

@@ -324,7 +324,7 @@ class DoctringExtractionTests:
 class TestParseRestructuredDocstring(DoctringExtractionTests, unittest.TestCase):
     BASIC_DOCSTRING = """
         A basic function.
-        
+
         :param a: The first parameter, defaults to '1'
         :type a: int, optional
         :param b: The second parameter
@@ -340,7 +340,7 @@ class TestParseRestructuredDocstring(DoctringExtractionTests, unittest.TestCase)
 
     ONLY_PARAM = """
         Summary here.
-        
+
         :param a: Description for a.
         :type a: int
 
@@ -369,33 +369,33 @@ class TestParseRestructuredDocstring(DoctringExtractionTests, unittest.TestCase)
         """
     ONLY_RETURN = """
         Summary for this one.
-        
+
         :return: Some output.
         :rtype: int
         """
 
     ONLY_EXCEPT = """
         Exception function.
-        
+
         :raises ValueError: If value is wrong.
         """
     UNDOC_EXCEPT = """
         Exception function.
-        
+
         :raises ValueError:
         :raises TypeError
         """
 
     P_WO_TYPE = """
         Function without types.
-        
+
         :param a: Description for a.
         :param b: Description for b.
         """
 
     MULTI_EXCEPT = """
         Function with multiple exceptions.
-        
+
         :raises ValueError: If value is wrong.
         :raises TypeError: If type is wrong.
         """
@@ -411,14 +411,14 @@ class TestParseRestructuredDocstring(DoctringExtractionTests, unittest.TestCase)
         :param a: Description for a.
             This continues.
         :param b: Description for b.
-        
+
         :return: Some output.
             This continues.
         :rtype: int
 
         :raises ValueError: If value is wrong.
             This explains why.
-        
+
         :raises TypeError: If type is wrong.
         """
 
@@ -453,7 +453,7 @@ class TestParseRestructuredDocstring(DoctringExtractionTests, unittest.TestCase)
 
     def test_empty_raises(self):
         docstring = """
-        :raises 
+        :raises
         """
         with self.assertRaises(ValueError):
             self.get_parser()(docstring)
@@ -474,7 +474,7 @@ class TestParseRestructuredDocstring(DoctringExtractionTests, unittest.TestCase)
 class TestParseGoogleStyledDocstring(DoctringExtractionTests, unittest.TestCase):
     BASIC_DOCSTRING = """
         A basic function.
-        
+
         Args:
             a (int, optional): The first parameter, defaults to "1".
             b (str): The second parameter.
@@ -503,7 +503,7 @@ class TestParseGoogleStyledDocstring(DoctringExtractionTests, unittest.TestCase)
 
     ONLY_PARAM = """
         Summary here.
-        
+
         Args:
             a (int): Description for a.
             b (int, optional): b is an optional integer.
@@ -516,28 +516,28 @@ class TestParseGoogleStyledDocstring(DoctringExtractionTests, unittest.TestCase)
 
     UNKNOWN_SECTION = """
         Args:
-            a: defaults to 
+            a: defaults to
         Unknown:
             test
         """
 
     ONLY_RETURN = """
         Summary for this one.
-        
+
         Returns:
             int: Some output.
         """
 
     ONLY_EXCEPT = """
         Exception function.
-        
+
         Raises:
             ValueError: If value is wrong.
         """
 
     UNDOC_EXCEPT = """
         Exception function.
-        
+
         Raises:
             ValueError:
             TypeError:
@@ -545,7 +545,7 @@ class TestParseGoogleStyledDocstring(DoctringExtractionTests, unittest.TestCase)
 
     P_WO_TYPE = """
         Function without types.
-        
+
         Args:
             a: Description for a.
             b: Description for b.
@@ -553,7 +553,7 @@ class TestParseGoogleStyledDocstring(DoctringExtractionTests, unittest.TestCase)
 
     MULTI_EXCEPT = """
         Function with multiple exceptions.
-        
+
         Raises:
             ValueError: If value is wrong.
             TypeError: If type is wrong.
@@ -593,7 +593,7 @@ class TestParseGoogleStyledDocstring(DoctringExtractionTests, unittest.TestCase)
 
     def test_raises_wo_except(self):
         docstring = """
-        Raises: 
+        Raises:
             safdsaf
     """
 
@@ -608,7 +608,7 @@ class TestParseGoogleStyledDocstring(DoctringExtractionTests, unittest.TestCase)
 
     def test_returns_wo_param(self):
         docstring = """
-        Returns: 
+        Returns:
             safdsaf
     """
 
