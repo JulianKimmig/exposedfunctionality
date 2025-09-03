@@ -22,7 +22,7 @@ from .function_parser import serialize_type
 from .function_parser.types import add_type, SerializedType
 from .function_parser import InputMeta, OutputMeta
 
-__version__ = "1.0.0"
+__version__ = "1.0.1"
 
 __all__ = [
     "function_parser",
