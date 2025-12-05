@@ -1,16 +1,25 @@
-# Changelog
+## 1.0.3 (2025-12-05)
 
-All notable changes to this project will be documented in this file.
+### Fix
 
-## [0.4.0] - 2025-09-02
+- **function-parser**: handle union type names and empty generics safely
 
-- Added Annotated metadata for full input/output serialization.
-  - New `InputMeta` and `OutputMeta` classes.
-  - All input fields configurable via annotation: `name`, `type`, `default`, `optional`, `positional`, `description`, `middleware`, `endpoints`.
-  - All output fields configurable via annotation: `name`, `type`, `description`, `endpoints`.
-  - Per-element tuple return metadata supported.
-  - Annotated values merge with docstrings; Annotated has highest precedence.
-  - Non-intrusive: call semantics (defaults, positionality) unchanged unless explicitly overridden in serialization via metadata.
-- Documentation updated with examples in `docs/markdown/exposedfunctionality/function_parser/ser_types.md`.
-- Tests added in `tests/test_annotated_metadata.py`.
+## v0.3.10 (2024-08-28)
 
+## v0.3.9 (2024-08-28)
+
+## v0.1.8 (2023-12-19)
+
+## v0.1.7 (2023-12-19)
+
+## v0.1.6 (2023-10-24)
+
+## v0.1.5 (2023-10-24)
+
+## v0.1.4 (2023-10-24)
+
+## v0.1.3 (2023-10-24)
+
+## v0.1.2 (2023-10-24)
+
+## v0.1.1 (2023-10-24)

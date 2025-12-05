@@ -4,6 +4,7 @@ import importlib
 import re
 import ast
 from typing import (
+    Annotated,
     Union,
     Type,
     Tuple,
@@ -69,6 +70,59 @@ _TYPE_GETTER: Dict[str, type] = {}
 _STRING_GETTER: Dict[type, str] = {}
 
 
+def _friendly_type_name(type_: type) -> str:
+    """Return a stable string representation for types that may lack __name__."""
+    if type_ in _STRING_GETTER:
+        return _STRING_GETTER[type_]
+
+    origin = get_origin(type_)
+    if origin is Annotated:
+        return _friendly_type_name(get_args(type_)[0])
+
+    if type_ is Any:
+        return "Any"
+    if type_ in (None, NoneType):
+        return "None"
+
+    if hasattr(type_, "__name__"):
+        return type_.__name__
+
+    if origin in (Union, PyUnionType):
+        parts = [_friendly_type_name(arg) for arg in get_args(type_)]
+        none_last = [p for p in parts if p == "None"]
+        rest = sorted([p for p in parts if p != "None"])
+        return f"Union[{', '.join(rest + none_last)}]"
+
+    if origin in (list, List):
+        args = get_args(type_)
+        inner = _friendly_type_name(args[0]) if args else "Any"
+        return f"List[{inner}]"
+    if origin in (Sequence, collections.abc.Sequence):
+        args = get_args(type_)
+        inner = _friendly_type_name(args[0]) if args else "Any"
+        return f"Sequence[{inner}]"
+    if origin in (dict, Dict):
+        args = get_args(type_)
+        key = _friendly_type_name(args[0]) if len(args) >= 1 else "Any"
+        val = _friendly_type_name(args[1]) if len(args) >= 2 else "Any"
+        return f"Dict[{key}, {val}]"
+    if origin in (tuple, Tuple):
+        parts = ", ".join(_friendly_type_name(arg) for arg in get_args(type_))
+        return f"Tuple[{parts}]"
+    if origin in (set, Set, frozenset):
+        args = get_args(type_)
+        inner = _friendly_type_name(args[0]) if args else "Any"
+        return f"Set[{inner}]"
+    if origin in (Type, type):
+        args = get_args(type_)
+        if args:
+            return f"Type[{_friendly_type_name(args[0])}]"
+    if origin is Literal:
+        return f"Literal[{', '.join(map(str, get_args(type_)))}]"
+
+    return str(type_)
+
+
 def add_type(type_: type, name: str):
     """
     Add a type to the list of allowed types.
@@ -80,13 +134,32 @@ def add_type(type_: type, name: str):
     Raises:
     - ValueError if the type is already in the list.
     """
-    if name not in _TYPE_GETTER:
-        _TYPE_GETTER[name] = type_
+
+    origin = get_origin(type_)
+    if origin is Annotated:
+        return add_type(get_args(type_)[0], name)
+    elif origin is dict:
+        key_type, value_type = get_args(type_) or (None, None)
+        if key_type is not None:
+            add_type(key_type, _friendly_type_name(key_type))
+        if value_type is not None:
+            add_type(value_type, _friendly_type_name(value_type))
+    elif origin in (list, tuple, set, frozenset):
+        for arg in get_args(type_):
+            add_type(arg, _friendly_type_name(arg))
+    elif origin in (Union, PyUnionType):
+        for arg in get_args(type_):
+            add_type(arg, _friendly_type_name(arg))
+
+    reg_name = name or _friendly_type_name(type_)
+
+    if reg_name not in _TYPE_GETTER:
+        _TYPE_GETTER[reg_name] = type_
 
     if type_ not in _STRING_GETTER:
-        _STRING_GETTER[type_] = name
+        _STRING_GETTER[type_] = reg_name
 
-    return _TYPE_GETTER[name]
+    return _TYPE_GETTER[reg_name]
 
 
 for k, v in ALLOWED_BUILTINS.items():
@@ -255,15 +328,26 @@ def type_to_string(t: Union[type, str], *, _sort_union_args: bool = False):
         if origin:
             # Optional[T] is just Union[T, None] in disguise; handled via Union
             if origin in [list, List]:
-                return f"List[{type_to_string(get_args(t)[0], _sort_union_args=True)}]"
+                listargs = get_args(t)
+                if len(listargs) == 0:
+                    return "List[Any]"
+                return f"List[{type_to_string(listargs[0], _sort_union_args=True)}]"
             if origin in [Sequence, collections.abc.Sequence]:
-                return (
-                    f"Sequence[{type_to_string(get_args(t)[0], _sort_union_args=True)}]"
-                )
+                sequenceargs = get_args(t)
+                if len(sequenceargs) == 0:
+                    return "Sequence[Any]"
+                return f"Sequence[{type_to_string(sequenceargs[0], _sort_union_args=True)}]"
             elif origin in [dict, Dict]:
                 args = get_args(t)
-                key_type = type_to_string(args[0], _sort_union_args=True)
-                value_type = type_to_string(args[1], _sort_union_args=True)
+                if len(args) == 0:
+                    key_type = "Any"
+                    value_type = "Any"
+                elif len(args) == 1:
+                    key_type = "Any"
+                    value_type = type_to_string(args[0], _sort_union_args=True)
+                else:
+                    key_type = type_to_string(args[0], _sort_union_args=True)
+                    value_type = type_to_string(args[1], _sort_union_args=True)
                 return f"Dict[{key_type}, {value_type}]"
             elif origin in [tuple, Tuple]:
                 tupletypes = [

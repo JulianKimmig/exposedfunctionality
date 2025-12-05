@@ -367,7 +367,9 @@ def parse_google_docstring(docstring: str) -> DocstringParserResult:
             # unknown section
             section = line.split(":")[0].rstrip()
 
-            warnings.warn(f"Encounterd unknown section: {section}")
+            warnings.warn(
+                f"Encounterd unknown section: {section} of docstring: {docstring}"
+            )
 
         else:
             if section == "Sum":
